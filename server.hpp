@@ -6,7 +6,7 @@
 /*   By: rcheiko <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/10 12:14:59 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/10 14:13:35 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 # include <cstring>
 # include <cstdlib>
 # include <vector>
+# include <netdb.h>
 # include <sys/socket.h> // For socket functions
 # include <netinet/in.h> // For sockaddr_in
 

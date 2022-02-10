@@ -6,7 +6,7 @@
 /*   By: rcheiko <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 12:05:52 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/10 13:51:00 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/10 14:25:12 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,3 +26,14 @@ int main(int ac, char **av)
 
 	return (0);
 }
+
+
+	/*protoent *a; // FONCTION GET PROTO BY NAME
+	const char str[] = "TCP";
+	a = getprotobyname(str);
+	std::cout << "protocol : " << a->p_name << std::endl;
+	std::cout << "numero protocol : " << a->p_proto << std::endl;
+	for(int i = 0; a->p_aliases[i]; i++)
+	{
+		std::cout << "protocol : " << a->p_aliases << std::endl;
+	}*/
