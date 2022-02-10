@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rcheiko <marvin@42.fr>                     +#+  +:+       +#+        */
+/*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/10 14:44:08 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/10 18:53:24 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,11 +33,11 @@ class server{
 			socketfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			if (socketfd == -1)
 			{
-				std::cout << "socket error" << std::endl;
+				std::cout << "\t--Socket error" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 			else
-				std::cout << "socket created" << std::endl;
+				std::cout << "\t--Socket created" << std::endl;
 			sin.sin_family = AF_INET;
 			sin.sin_port = htons(port);
 			sin.sin_addr.s_addr = INADDR_ANY;
@@ -45,29 +45,114 @@ class server{
 			int optval = 1;
 			if ((setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int))) == -1)
 			{
-				std::cout << "Set Socket Error \n";
+				std::cout << "\t--Set Socket Error \n";
 				exit(EXIT_FAILURE);
 			}
 			else
-				std::cout << "Set Socket Success" << std::endl;
+				std::cout << "\t--Set Socket Success" << std::endl;
 	
 			if (bind(socketfd, (sockaddr*)&sin, sizeof(sin)) == -1)
 			{
-				std::cout << "bind error" << std::endl;
+				std::cout << "\t--Bind error" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 			else
-				std::cout << "bind was linked" << std::endl;
+				std::cout << "\t--Bind was linked" << std::endl;
 	
 			if (listen(socketfd, SOMAXCONN) < 0)
 			{
-				std::cout << "listen error" << std::endl;
+				std::cout << "\t--Listen error" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 			else
-				std::cout << "listen success" << std::endl;
+				std::cout << "\t--Listen success" << std::endl;
+			fds[0].fd = socketfd;
+  			fds[0].events = POLLIN;			
+		}
+		int	poll_init(int fd)
+		{
+			int res;
+			std::cout << "\t--YOPP" <<std::endl;
+			memset(fds, 0 , sizeof(fds));
+			std::cout << "\t--TCHUP " <<std::endl;
+			res = poll(fds, fd, (3 * 60 * 1000));
+			std::cout << "\t--RES " << res <<std::endl;
+			if (res == -1)
+			{
+				std::cout << "\t--Poll error" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			else
+				std::cout << "\t--Poll success" << std::endl;
+			return (res);
 		}
 	
+		int	init_accept()
+		{
+			int d;
+		    int l;
+			sockaddr_in	c;
+		    if ((d = accept(socketfd, (sockaddr *)&c, (socklen_t *)&l)) == -1)
+		    {
+		        std::cout << "\t--Accept error\n";
+		        exit(EXIT_FAILURE);  
+		    }
+		    else
+		        std::cout << "\t--New client connect from port no. " << ntohs(sin.sin_port) << "\n";
+			return (d);
+		}
+		void	recv_send()
+		{
+			int nfds = 1;	
+			std::string buffer[256];
+			memset(buffer ,0 , 256);
+			int d = 0;
+			int i = 0;
+			int res = 0;
+			std::cout << "\t-- ICI --\n";
+			while (1)
+			{
+				std::cout << "\t-- ICI 1--\n";
+				res = poll_init(nfds);
+				std::cout << "\t-- ICI 2--\n";
+				if (res == -1)
+				{
+					std::cout << "\t--poll error\n";
+		  		    exit(EXIT_FAILURE); 	
+				}
+				if (res == 0)
+				{
+					std::cout << "\t--poll time out\n";
+		  		    exit(EXIT_FAILURE);
+				}
+				
+				while (d != -1)
+				{
+					d = init_accept();
+					fds[nfds].fd = d;
+	 		        fds[nfds].events = POLLIN;
+   		       		nfds++;
+					while (1)
+					{
+						int rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+						if (rc == -1)
+						{
+							std::cout << "\t--Recv error" << std::endl;
+							exit(EXIT_FAILURE);
+						}
+						else
+							std::cout << "\t--Recv success" << std::endl;
+						if (send(fds[i].fd, buffer, rc, 0) == -1)
+						{
+							std::cout << "\t--Send error" << std::endl;
+							exit(EXIT_FAILURE);
+						}
+						else
+							std::cout << "\t--Send success" << std::endl;
+					}
+				}		
+			}
+		}
 		void	setPassword(int pass)
 		{
 			password = pass;
@@ -76,9 +161,10 @@ class server{
 	private:
 		int					socketfd;
 		int					password;
+		//int					f_poll;
 		std::vector<int>	clientfd;
 		sockaddr_in			sin;
-		std::string			buffer;
+		pollfd				fds[200];
 
 };
 
