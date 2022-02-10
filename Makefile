@@ -6,13 +6,13 @@
 #    By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/10/22 11:30:52 by pmontiel          #+#    #+#              #
-#    Updated: 2022/02/10 11:22:56 by pmontiel         ###   ########.fr        #
+#    Updated: 2022/02/10 14:01:46 by rcheiko          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME		=	ircserv
 
-SRCS		=	ft_irc.cpp
+SRCS		=	main.cpp
 
 OBJS		=	${SRCS:.cpp=.o}
 
