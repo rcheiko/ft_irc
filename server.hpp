@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/10 18:53:24 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/10 19:29:08 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,11 +72,8 @@ class server{
 		int	poll_init(int fd)
 		{
 			int res;
-			std::cout << "\t--YOPP" <<std::endl;
 			memset(fds, 0 , sizeof(fds));
-			std::cout << "\t--TCHUP " <<std::endl;
-			res = poll(fds, fd, (3 * 60 * 1000));
-			std::cout << "\t--RES " << res <<std::endl;
+			res = poll(fds, fd, -1);
 			if (res == -1)
 			{
 				std::cout << "\t--Poll error" << std::endl;
