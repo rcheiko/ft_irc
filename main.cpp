@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 12:05:52 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/10 17:14:36 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/11 16:15:10 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,13 +19,10 @@ int main(int ac, char **av)
 		std::cout << "error argument : ./ircserv <port> <password>" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-
 	server serv;
-	serv.setPassword(std::atoi(av[2]));
+	serv.setPassword(av[2]);
 	serv.init_socket(std::atoi(av[1]));
-	//serv.poll_init();
-	serv.recv_send();
-
+	serv.k_init();
 	return (0);
 }
 

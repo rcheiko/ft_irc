@@ -6,13 +6,14 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/11 13:33:01 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/11 16:35:05 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef SERVER_HPP
 # define SERVER_HPP
 # include <iostream>
+# include <unistd.h>
 # include <cstring>
 # include <cstdlib>
 # include <vector>
@@ -20,7 +21,9 @@
 # include <poll.h>
 # include <sys/socket.h> // For socket functions
 # include <netinet/in.h> // For sockaddr_in
-# include <poll.h>
+# include <sys/types.h>
+# include <sys/event.h>
+# include <sys/time.h>
 
 class server{
 
@@ -67,100 +70,89 @@ class server{
 			}
 			else
 				std::cout << "\t--Listen success" << std::endl;
-			fds[0].fd = socketfd;
-  			fds[0].events = POLLIN;			
 		}
-		int	poll_init(int fd)
+		void	k_init()
 		{
-			int res;
-			//memset(fds, 0 , sizeof(fds));
-			res = poll(fds, fd, -1);
-			if (res == -1)
+			int new_events;
+			int kq;
+			int con;
+			kq = kqueue();
+			EV_SET(change_event, socketfd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
+			if (kevent(kq, change_event, 1, NULL, 0, NULL) == -1)
+		    {
+		        perror("kevent");
+		        exit(1);
+		    }
+			while (1)
 			{
-				std::cout << "\t--Poll error" << std::endl;
-				exit(EXIT_FAILURE);
+				new_events = kevent(kq, NULL, 0, event, 1, NULL); 
+				if (new_events == -1)
+		        {
+		            perror("kevent");
+		            exit(1);
+		        }
+				for (int i = 0; new_events > i; i++)
+        		{
+        		    event_fd = event[i].ident;
+					if (event[i].flags & EV_EOF)
+    	        	{
+    	        	    std::cout << "Client has disconnected\n";
+    	        	    close(event_fd);
+    	        	}
+					else if (event_fd == socketfd)
+					{
+						con = init_accept();
+						EV_SET(change_event, con, EVFILT_READ, EV_ADD, 0, 0, NULL);
+						if (kevent(kq, change_event, 1, NULL, 0, NULL) < 0)
+		                {
+		                    perror("kevent error");
+		                }
+					}
+					else if (event[i].filter & EVFILT_READ)
+		            {
+		                char buf[1024];
+		                size_t bytes_read = recv(event_fd, buf, sizeof(buf), 0);
+		                std::cout << "read " << bytes_read << " bytes" << "\n";
+						send(event_fd, buf, bytes_read, 0);
+		            }
+				}				
 			}
-			else
-				std::cout << "\t--Poll success" << std::endl;
-			return (res);
 		}
-	
 		int	init_accept()
 		{
+			char buf[256];
 			int d;
 		    int l;
 			sockaddr_in	c;
-		    if ((d = accept(socketfd, (sockaddr *)&c, (socklen_t *)&l)) == -1)
+			memset(buf ,0 , 256);
+		    if ((d = accept(event_fd, (sockaddr *)&c, (socklen_t *)&l)) == -1)
 		    {
 		        std::cout << "\t--Accept error\n";
 		        exit(EXIT_FAILURE);  
 		    }
 		    else
 		        std::cout << "\t--New client connect from port no. " << ntohs(sin.sin_port) << "\n";
+			while (std::strcmp(buf, password) != 0)
+			{
+				send(d, "ENTER A PASSWORD : ", 19, 0);
+		    	int a = recv(d, buf, sizeof(buf), 0);
+				buf[a - 1] = '\0';
+			}
 			return (d);
 		}
-		void	recv_send()
-		{
-			int nfds = 1;	
-			std::string buffer[256];
-			memset(buffer ,0 , 256);
-			int d = 0;
-			int i = 1;
-			int res;
-			std::cout << "\t-- ICI --\n";
-			while (1)
-			{
-				std::cout << "\t-- ICI 1--\n";
-				res = poll_init(nfds);
-				std::cout << "\t-- ICI 2--\n";
-				if (res == -1)
-				{
-					std::cout << "\t--poll error\n";
-		  		    exit(EXIT_FAILURE); 	
-				}
-				if (res == 0)
-				{
-					std::cout << "\t--poll time out\n";
-		  		    exit(EXIT_FAILURE);
-				}
-				while (d != -1)
-				{
-					d = init_accept();
-					fds[nfds].fd = d;
-	 		        fds[nfds].events = POLLIN;
-   		       		nfds++;
-						int rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-						if (rc == -1)
-						{
-							std::cout << "\t--Recv error" << std::endl;
-							exit(EXIT_FAILURE);
-						}
-						else
-							std::cout << "\t--Recv success" << std::endl;
-						if (send(fds[i].fd, buffer, rc, 0) == -1)
-						{
-							std::cout << "\t--Send error" << std::endl;
-							exit(EXIT_FAILURE);
-						}
-						else	
-						{
-							std::cout << "\t--Send success" << std::endl;
-						}
-				}		
-			}
-		}
-		void	setPassword(int pass)
+		void	setPassword(char* pass)
 		{
 			password = pass;
 		}
 
 	private:
 		int					socketfd;
-		int					password;
-		//int					f_poll;
+		char*				password;
 		std::vector<int>	clientfd;
 		sockaddr_in			sin;
-		pollfd				fds[200];
+		int 				event_fd;
+		struct kevent 		change_event[4], event[4];
+
 
 };
 
