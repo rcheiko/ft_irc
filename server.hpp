@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/11 16:35:05 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/11 17:08:19 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,6 +94,13 @@ class server{
 				for (int i = 0; new_events > i; i++)
         		{
         		    event_fd = event[i].ident;
+					if (checkPassword[i] != 1)
+					{
+						checkPassword[i] = -1;
+					//	send(event_fd, "ENTER A PASSWORD : ", 19, 0);
+						if (checkPassword[i + 1])
+							checkPassword[i + 1] = 0;
+					}
 					if (event[i].flags & EV_EOF)
     	        	{
     	        	    std::cout << "Client has disconnected\n";
@@ -112,8 +119,19 @@ class server{
 		            {
 		                char buf[1024];
 		                size_t bytes_read = recv(event_fd, buf, sizeof(buf), 0);
+						buf[bytes_read - 1] = '\0';
+						std::cout << "1 : " << std::strlen(buf) << std::endl;
+						std::cout << "2 : " << std::strlen(password) << std::endl;
+
 		                std::cout << "read " << bytes_read << " bytes" << "\n";
-						send(event_fd, buf, bytes_read, 0);
+
+						if (checkPassword[i] == 1)
+						{
+							send(event_fd, buf, bytes_read, 0);
+							send(event_fd, "\n", 1, 0);
+						}
+						if (checkPassword[i] == -1 && std::strcmp(buf, password) == 0)
+							checkPassword[i] = 1;
 		            }
 				}				
 			}
@@ -132,12 +150,11 @@ class server{
 		    }
 		    else
 		        std::cout << "\t--New client connect from port no. " << ntohs(sin.sin_port) << "\n";
-			while (std::strcmp(buf, password) != 0)
+		/*	while (std::strcmp(buf, password) != 0)
 			{
-				send(d, "ENTER A PASSWORD : ", 19, 0);
 		    	int a = recv(d, buf, sizeof(buf), 0);
 				buf[a - 1] = '\0';
-			}
+			}*/
 			return (d);
 		}
 		void	setPassword(char* pass)
@@ -152,6 +169,7 @@ class server{
 		sockaddr_in			sin;
 		int 				event_fd;
 		struct kevent 		change_event[4], event[4];
+		int					checkPassword[4];
 
 
 };
