@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/11 12:45:49 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/11 13:33:01 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,7 +105,7 @@ class server{
 			std::string buffer[256];
 			memset(buffer ,0 , 256);
 			int d = 0;
-			int i = 0;
+			int i = 1;
 			int res;
 			std::cout << "\t-- ICI --\n";
 			while (1)
@@ -129,8 +129,6 @@ class server{
 					fds[nfds].fd = d;
 	 		        fds[nfds].events = POLLIN;
    		       		nfds++;
-					while (1)
-					{
 						int rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 						if (rc == -1)
 						{
@@ -144,9 +142,10 @@ class server{
 							std::cout << "\t--Send error" << std::endl;
 							exit(EXIT_FAILURE);
 						}
-						else
+						else	
+						{
 							std::cout << "\t--Send success" << std::endl;
-					}
+						}
 				}		
 			}
 		}
