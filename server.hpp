@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/15 15:35:45 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/15 16:17:14 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,11 +74,19 @@ class server{
 			else
 				std::cout << "\t--Listen success" << std::endl;
 		}
+		int ft_strlen(char *str)
+		{
+			int i = 0;
+			while (str[i])
+			i++;
+			return (i);
+		}
 		void	k_init()
 		{
 			int new_events;
 			int kq;
 			int con;
+			char	*com;
 			kq = kqueue();
 			EV_SET(change_event, socketfd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
 			if (kevent(kq, change_event, 1, NULL, 0, NULL) == -1)
@@ -156,8 +164,11 @@ class server{
 							send(event_fd, "Good Password\n", 14, 0);
 							send(event_fd, "Enter Username : ", 17, 0);
 						}
-		
-
+						if (checkAll(event_fd) == 1 && strcmp(buf, "/help") == 0)
+						{
+							com = (char *)"############# COMMAND LIST ##############\n#\t\"/join\" <name of the channel>   #\n#\t\"/send\" <username>            \t#\n#########################################\n";
+							send(event_fd, com, ft_strlen(com), 0);
+						}
 						/*else if (checkPassword[event_fd - 5] == 1 && users[event_fd])
 						{
 							users[event_fd]->nickname = buf;
@@ -180,9 +191,15 @@ class server{
 		        std::cout << "\t--Accept error\n";
 		        exit(EXIT_FAILURE);  
 		    }
-		    else
-		        std::cout << "\t--New client connect from port no. " << ntohs(sin.sin_port) << "\n";
+		    std::cout << "\t--New client connect from port no. " << ntohs(sin.sin_port) << "\n";
+			send(event_fd, "Please fill the following informations : \n", 41, 0);
 			return (d);
+		}
+		int		checkAll(int fd)
+		{
+			if (users[fd]->nickname.length() && users[fd]->username.length())
+				return 1;
+			return 0;
 		}
 		void	setPassword(char* pass)
 		{
