@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/15 16:17:14 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/15 17:41:27 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -169,6 +169,9 @@ class server{
 							com = (char *)"############# COMMAND LIST ##############\n#\t\"/join\" <name of the channel>   #\n#\t\"/send\" <username>            \t#\n#########################################\n";
 							send(event_fd, com, ft_strlen(com), 0);
 						}
+						if (checkAll(event_fd) == 1 && strncmp(buf, "/join ", 7) == 0){
+							char *tab = substr(buf, )
+						}
 						/*else if (checkPassword[event_fd - 5] == 1 && users[event_fd])
 						{
 							users[event_fd]->nickname = buf;
@@ -219,6 +222,33 @@ class server{
 				check[i] = 0;
 			}
 		}
+		char	*ft_substr(char const *s, unsigned int start, size_t len)
+		{
+			char			*strf;
+			int				i;
+			unsigned int	lens;
+
+			lens = ft_strlen(s);
+			i = 0;
+			if (start > lens)
+			{
+				if (!(strf = malloc(sizeof(char) * 1)))
+					return (NULL);
+				return (strf);
+			}
+			if (!(strf = malloc(sizeof(char) * len + 1)))
+				return (NULL);
+			while (s[start] && len != 0)
+			{
+				if (len == 0)
+					return (strf);
+				strf[i++] = s[start++];
+				len--;
+			}
+			strf[i] = '\0';
+			return (strf);
+		}
+
 	private:
 		struct Node
 		{
