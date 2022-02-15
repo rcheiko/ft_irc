@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/14 14:18:20 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/15 15:35:45 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 # include <unistd.h>
 # include <cstring>
 # include <cstdlib>
-# include <vector>
+# include <map>
 # include <netdb.h>
 # include <poll.h>
 # include <sys/socket.h> // For socket functions
@@ -29,7 +29,10 @@ class server{
 
 	public:
 
-		server(void){}
+		server(void){
+			fillBool();
+			fillPassword();		
+		}
 		~server(){}
 	
 		void init_socket(int port)
@@ -86,7 +89,6 @@ class server{
 			while (1)
 			{
 				new_events = kevent(kq, NULL, 0, event, 1, NULL); 
-				std::cout << "new : " << new_events << std::endl;
 				if (new_events == -1)
 		        {
 		            perror("kevent");
@@ -95,6 +97,19 @@ class server{
 				for (int i = 0; new_events > i; i++)
         		{
         		    event_fd = event[i].ident;
+					std::map<int, Node*>::iterator it = users.begin();
+					std::map<int, Node*>::iterator ite = users.end();
+					for (; it != ite; it++)
+					{
+						if (it->first == event_fd)
+							break;
+					}
+					if (it == ite)
+					{
+						Node *node = new Node;			
+						users[event_fd] = node; 
+						std::cout << "AAAA\n";
+					}
 					if (checkPassword[event_fd - 5] == -1)
 						send(event_fd, "ENTER PASSWORD : ", 17, 0);
 
@@ -117,12 +132,37 @@ class server{
 		            {
 		                char buf[1024];
 		                size_t bytes_read = recv(event_fd, buf, sizeof(buf), 0);
-						buf[bytes_read - 1] = '\0';
+						buf[bytes_read - 1] = '\0';							
+						if (users[event_fd]->username.length() && users[event_fd]->nickname.length() == 0)
+						{
+							if (users[event_fd]->nickname.length() == 0)
+							{									
+								users[event_fd]->nickname = buf;
+								std::cout << users[event_fd]->nickname << std::endl;
+							}	
+						}	
+						if (checkPassword[event_fd - 5] == 1 && users[event_fd])
+						{
+							if (users[event_fd]->username.length() == 0)
+							{									
+								users[event_fd]->username = buf;
+								std::cout << users[event_fd]->username << std::endl;
+								send(event_fd, "Enter Nickname : ", 17, 0);
+							}	
+						}
 						if (strcmp(buf, password) == 0 && checkPassword[event_fd - 5] == -1)
 						{
 							checkPassword[event_fd - 5] = 1;
 							send(event_fd, "Good Password\n", 14, 0);
+							send(event_fd, "Enter Username : ", 17, 0);
 						}
+		
+
+						/*else if (checkPassword[event_fd - 5] == 1 && users[event_fd])
+						{
+							users[event_fd]->nickname = buf;
+							std::cout << users[event_fd]->nickname<< std::endl;
+						}		*/				
 		                std::cout << "read " << bytes_read << " bytes" << "\n";
 		            }
 				}				
@@ -155,15 +195,29 @@ class server{
 				checkPassword[i] = -1;
 			}
 		}
-
+		void	fillBool()
+		{
+			for (int i = 0; i < 4 ; i++)
+			{
+				check[i] = 0;
+			}
+		}
 	private:
+		struct Node
+		{
+			std::string nickname;
+			std::string username;
+			std::string channel;
+			bool		ope;
+		};
 		int					socketfd;
 		char*				password;
-		std::vector<int>	clientfd;
+		std::map<int, Node*>	users;
 		sockaddr_in			sin;
 		int 				event_fd;
 		struct kevent 		change_event[4], event[4];
 		int					checkPassword[4];
+		bool				check[4];
 
 
 };
