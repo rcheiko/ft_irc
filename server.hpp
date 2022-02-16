@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/15 19:14:15 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/16 11:53:37 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@
 # include <sys/event.h>
 # include <sys/time.h>
 # include <stdlib.h>
+#include <arpa/inet.h>
 
 class server{
 
@@ -117,7 +118,7 @@ class server{
 				std::cout << "\t--Socket created" << std::endl;
 			sin.sin_family = AF_INET;
 			sin.sin_port = htons(port);
-			sin.sin_addr.s_addr = INADDR_ANY;
+			sin.sin_addr.s_addr = inet_addr("127.0.0.1");
 
 			int optval = 1;
 			if ((setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int))) == -1)
