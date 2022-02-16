@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/16 11:53:37 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/16 15:48:30 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -152,12 +152,19 @@ class server{
 				i++;
 			return (i);
 		}
+
+		int ft_strlen_tab(char **str)
+		{
+			int i = 0;
+			while (str[i])
+				i++;
+			return (i);
+		}
 		void	k_init()
 		{
 			int new_events;
 			int kq;
 			int con;
-			char	*com;
 			kq = kqueue();
 			EV_SET(change_event, socketfd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
 			if (kevent(kq, change_event, 1, NULL, 0, NULL) == -1)
@@ -189,8 +196,8 @@ class server{
 						node->ope = false;			
 						users[event_fd] = node;
 					}
-					if (checkPassword[event_fd - 5] == -1)
-						send(event_fd, "ENTER PASSWORD : ", 17, 0);
+					//if (checkPassword[event_fd - 5] == -1)
+					//	send(event_fd, "ENTER PASSWORD : ", 17, 0);
 
 					if (event[i].flags & EV_EOF)
 					{
@@ -213,7 +220,47 @@ class server{
 						char buf[1024];
 						size_t bytes_read = recv(event_fd, buf, sizeof(buf), 0);
 						buf[bytes_read - 1] = '\0';
-						if (checkAll(event_fd) == 1 && strncmp(buf, "/send ", 6) == 0)
+						std::cout << "BUFFER : " << buf << std::endl;
+						if (checkPassword[event_fd - 5] == -1)
+						{
+							char **buf_info = ft_split(buf, '\n');
+							if (ft_strlen_tab(buf_info) >= 4)
+							{
+								char *pass = ft_substr(buf_info[1], 5, ft_strlen(buf_info[1]) - 5);
+								pass[ft_strlen(pass)-1] = '\0';
+								char *nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
+								nick[ft_strlen(nick)-1] = '\0';
+								std::map<int, Node*>::iterator it = users.begin();
+								std::map<int, Node*>::iterator ite = users.end();
+								for (; it != ite; it++)
+								{
+									char *user = &it->second->nickname[0];
+									if (strcmp(user, nick) == 0)
+									{
+										send(event_fd, "433 : Nickname is already in use\r\n", 45, 0);
+										checkPassword[event_fd - 5] = -2;
+									}
+								}
+								std::cout << ft_strlen(password) << std::endl;
+								std::cout << ft_strlen(pass) << std::endl;
+								if (strcmp(password, pass) == 0 && checkPassword[event_fd - 5] != -2)
+								{
+									std::cout << "CONGRATZ";
+									checkPassword[event_fd - 5] = 1;
+									users[event_fd]->nickname = nick;
+									std::cout << "USER: " << users[event_fd]->nickname << std::endl;
+									
+								}
+							}
+						}
+						if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2)
+						{
+							send(event_fd, "001 : Welcome on the server rcheiko!rcheiko@localhost\r\n", 60, 0);
+							std::cout << "##################" << std::endl;
+//							std::cout << " BUF : " << buf << std::endl;
+//							std::cout << "##################" << std::endl;
+						}
+						/*if (checkAll(event_fd) == 1 && strncmp(buf, "/send ", 6) == 0)
 						{
 							char **str = ft_split(buf, ' ');
 							std::map<int, Node*>::iterator it = users.begin();
@@ -318,8 +365,8 @@ class server{
 							users[event_fd]->channel = tab;
 							free(tab);
 							tab = NULL;
-						}
-						std::cout << "read " << bytes_read << " bytes" << "\n";
+						}*/
+						//std::cout << "read " << bytes_read << " bytes" << "\n";
 					}
 				}				
 			}
