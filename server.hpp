@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/16 18:58:38 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/16 19:01:18 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -235,6 +235,8 @@ class server{
 								char *pass = ft_substr(buf_info[1], 5, ft_strlen(buf_info[1]) - 5);
 								pass[ft_strlen(pass)-1] = '\0';
 								pass_error(pass);
+								nick_error(nick);
+								users[event_fd]->nickname = nick;
 							}
 							//char *nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
 							//nick[ft_strlen(nick)-1] = '\0';
@@ -243,8 +245,6 @@ class server{
 							//std::cout << "PASS : " << pass << std::endl;
 							//std::cout << "NICK : " << nick << std::endl;
 							//std::cout << "USER : " << user << std::endl;
-							//nick_error(nick);
-							//users[event_fd]->nickname = nick;
 						}
 						if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2 && checkPassword[event_fd - 5] != 2)
 						{
