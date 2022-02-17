@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/17 12:56:07 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/17 14:22:41 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -230,8 +230,6 @@ class server{
 						char **buf_info;
 						bzero(res, 1024);
 						bzero(buf, 1024);
-//						size_t bytes_read = 
-					//	usleep(10000);
 						if (checkPassword[event_fd -5] == -3)
 						{
 							while (1)
@@ -254,24 +252,22 @@ class server{
 							}
 						}
 						//std::cout << "BUFFER : " << buf << std::endl;
-						//buf[ft_strlen(buf)] = '\0';
-					//	char *user = NULL;
+						char *user = NULL;
 						char *pass = NULL;
-					//	char *nick = NULL;
-						if (checkPassword[event_fd - 5] == -1 || checkPassword[event_fd -5] == -2)
+						char *nick = NULL;
+						if (checkPassword[event_fd - 5] == -1)
 						{
 							if (buf_info && buf_info[0] && buf_info[1] && buf_info[2] && buf_info[3])
 							{
 								pass = ft_substr(buf_info[1], 5, ft_strlen(buf_info[1]) - 5);
-								//nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
-								//user = ft_substr(buf_info[3], 5, ft_strlen(buf_info[3]) - 5);
+								nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
+								user = ft_substr(buf_info[3], 5, ft_strlen(buf_info[3]) - 5);
 								pass[ft_strlen(pass)-1] = '\0';
-								//(void)user;
 								pass_error(pass);
-								//nick_error(nick);
-								//users[event_fd]->nickname = nick;
+								nick_error(nick);
+								users[event_fd]->nickname = nick;
 							}
-							/*if (user)
+						/*	if (user)
 							{
 								char **user_infos = ft_split(user, ' ');
 								if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
@@ -285,16 +281,10 @@ class server{
 						}
 						if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2 && checkPassword[event_fd - 5] != 2)
 						{
-							char welcome[] = "001 : Welcome on the server rcheiko!rcheiko@localhost\r\n";
+							char welcome[] = "001 rcheiko : Welcome on the server rcheiko!rcheiko@localhost\r\n";
 							checkPassword[event_fd - 5] = 2;
 							send(event_fd, welcome, ft_strlen(welcome), 0);
-						//	if (m != 1)
-						//	{
-						//		m = 1;
-						//	}
 						}		
-						//if (bytes_read != 0)
-						//	std::cout << "read " << bytes_read << " bytes" << "\n";
 					}
 				}				
 			}
@@ -317,14 +307,14 @@ class server{
 		}
 		void	pass_error(char *str)
 		{
+			char no_param[] = "432 : Not enough parameters\r\n";
+			char falsePass[] = "432 : Password incorrect\r\n";
 			if (!ft_strlen(str))
-				send(event_fd, "461 : Not enough parameters\r\n", 45, 0);
+				send(event_fd, no_param, ft_strlen(no_param), 0);
 			if (strcmp(password, str) == 0 && checkPassword[event_fd - 5] != -2)
-			{
 				checkPassword[event_fd - 5] = 1;
-			}
 			else
-				send(event_fd, "464 : Password incorrect\r\n", 45, 0);
+				send(event_fd, falsePass, ft_strlen(falsePass), 0);
 		}
 		void	nick_error(char *str)
 		{
@@ -333,16 +323,27 @@ class server{
 			for (; it != ite; it++)
 			{
 				char *user = &it->second->nickname[0];
+				std::cout << user << std::endl;
 				if (strcmp(user, str) == 0)
 				{
-					send(event_fd, "433 : Nickname is already in use\r\n", 45, 0);
+					char error_nickname[] = "433 : Nickname is already in use\r\n";
+					char error_msg[] = "Nickname is already in use\r\n";
+					send(event_fd, error_nickname, ft_strlen(error_nickname), 0);
+					send(event_fd, error_msg, ft_strlen(error_msg), 0);
 					checkPassword[event_fd - 5] = -2;
 				}
 			}
+			char no_nickname[] = "432 : No nickname given\r\n";
 			if (!ft_strlen(str))
-				send(event_fd, "431 : No nickname given\r\n", 30, 0);
+				send(event_fd, no_nickname, ft_strlen(no_nickname), 0);
+			char error_nick[] = "433 : Erroneous nickname\r\n";
+			char error_nick2[] = "Erroneous nickname\r\n";
 			if (ft_strlen(str) > 9)
-				send(event_fd, "432 : Erroneous nickname\r\n", 30, 0);
+			{
+				send(event_fd, error_nick, ft_strlen(error_nick), 0);
+				send(event_fd, error_nick2, ft_strlen(error_nick2), 0);
+				checkPassword[event_fd - 5] = -2;
+			}
 		}
 		int	init_accept()
 		{
