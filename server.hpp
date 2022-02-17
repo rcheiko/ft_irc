@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/17 14:22:41 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/17 18:12:37 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -226,70 +226,96 @@ class server{
 					else if (event[i].filter & EVFILT_READ)
 					{
 						char buf[1024];
-						char res[1024];
-						char **buf_info;
-						bzero(res, 1024);
 						bzero(buf, 1024);
-						if (checkPassword[event_fd -5] == -3)
-						{
-							while (1)
-							{
-								recv(event_fd, buf, 1024, 0);
-								if (strcmp(buf, "") != 0)
-								{
-									strcat(res, buf);
-									buf_info = ft_split(res, '\n');
-									if (ft_strlen_tab(buf_info) == 4)
-									{
-										checkPassword[event_fd - 5] = -1;
-										break;
-									}
-									else
-										free_tab(buf_info);
-	
-								}
-								bzero(buf, 1024);
-							}
-						}
-						//std::cout << "BUFFER : " << buf << std::endl;
-						char *user = NULL;
-						char *pass = NULL;
-						char *nick = NULL;
-						if (checkPassword[event_fd - 5] == -1)
-						{
-							if (buf_info && buf_info[0] && buf_info[1] && buf_info[2] && buf_info[3])
-							{
-								pass = ft_substr(buf_info[1], 5, ft_strlen(buf_info[1]) - 5);
-								nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
-								user = ft_substr(buf_info[3], 5, ft_strlen(buf_info[3]) - 5);
-								pass[ft_strlen(pass)-1] = '\0';
-								pass_error(pass);
-								nick_error(nick);
-								users[event_fd]->nickname = nick;
-							}
-						/*	if (user)
-							{
-								char **user_infos = ft_split(user, ' ');
-								if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
-								{
-									user_error(user_infos[0]);
-									users[event_fd]->username = user_infos[0];
-								}
-								else
-									send(event_fd, "461 : Not enough parameters\r\n", 40, 0);
-							}*/
-						}
-						if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2 && checkPassword[event_fd - 5] != 2)
-						{
-							char welcome[] = "001 rcheiko : Welcome on the server rcheiko!rcheiko@localhost\r\n";
-							checkPassword[event_fd - 5] = 2;
-							send(event_fd, welcome, ft_strlen(welcome), 0);
-						}		
+						checkConnection();
+						welcomeRPL();
+						recv(event_fd, buf, 1024, 0);
+						std::cout << "USERS : " << users[event_fd]->nickname << std::endl;
+						std::cout << "USERS LENGTH : " << users[event_fd]->nickname.length() << std::endl;
+						std::cout << "BUFFER : " << buf << std::endl;
 					}
 				}				
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		void	checkConnection()
+		{
+			char buf[1024];
+			char res[1024];
+			char **buf_info;
+			bzero(res, 1024);
+			bzero(buf, 1024);
+			if (checkPassword[event_fd -5] == -3)
+			{
+				while (1)
+				{
+					recv(event_fd, buf, 1024, 0);
+					if (strcmp(buf, "") != 0)
+					{
+						strcat(res, buf);
+						buf_info = ft_split(res, '\n');
+						if (ft_strlen_tab(buf_info) == 4)
+						{
+							checkPassword[event_fd - 5] = -1;
+							break;
+						}
+						else
+							free_tab(buf_info);
+
+					}
+					bzero(buf, 1024);
+				}
+			}
+			char *user = NULL;
+			char *pass = NULL;
+			char *nick = NULL;
+			if (checkPassword[event_fd - 5] == -1)
+			{
+				if (buf_info && buf_info[0] && buf_info[1] && buf_info[2] && buf_info[3])
+				{
+					pass = ft_substr(buf_info[1], 5, ft_strlen(buf_info[1]) - 5);
+					pass[ft_strlen(pass) - 1 ] = '\0';
+
+					nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
+					nick[ft_strlen(nick) - 1] = '\0';
+
+					user = ft_substr(buf_info[3], 5, ft_strlen(buf_info[3]) - 5);
+					user[ft_strlen(user) - 1] = '\0';
+
+					pass_error(pass);
+					nick_error(nick);
+					users[event_fd]->nickname = nick;
+				}
+				if (user)
+				{
+					char **user_infos = ft_split(user, ' ');
+					if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
+					{
+						//user_error(user_infos[0]);
+						users[event_fd]->username = user_infos[0];
+					}
+					else
+						send(event_fd, "461 : Not enough parameters\r\n", 40, 0);
+				}
+			}
+
+		}
+		void	welcomeRPL()
+		{
+			if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2 && checkPassword[event_fd - 5] != 2)
+			{
+				char *welcome = NULL;
+				std::string a = "001 ";
+				std::string b = " : Welcome on the server ";
+				std::string c = users[event_fd]->nickname;
+				std::string d = users[event_fd]->username;
+				a = a + users[event_fd]->nickname + b + c + "!" + d + "@localhost\r\n";
+				welcome = &a[0];
+				welcome[a.length()] = '\0';
+				checkPassword[event_fd - 5] = 2;
+				send(event_fd, welcome, ft_strlen(welcome), 0);
+			}		
 		}
 		void	user_error(char *str)
 		{
@@ -308,13 +334,17 @@ class server{
 		void	pass_error(char *str)
 		{
 			char no_param[] = "432 : Not enough parameters\r\n";
-			char falsePass[] = "432 : Password incorrect\r\n";
 			if (!ft_strlen(str))
 				send(event_fd, no_param, ft_strlen(no_param), 0);
 			if (strcmp(password, str) == 0 && checkPassword[event_fd - 5] != -2)
 				checkPassword[event_fd - 5] = 1;
 			else
+			{
+				char falsePass[] = "433 : Password incorrect\r\n";
+				char falsePass2[] = "Password incorrect\r\n";
 				send(event_fd, falsePass, ft_strlen(falsePass), 0);
+				send(event_fd, falsePass2, ft_strlen(falsePass2), 0);
+			}
 		}
 		void	nick_error(char *str)
 		{
@@ -326,7 +356,7 @@ class server{
 				std::cout << user << std::endl;
 				if (strcmp(user, str) == 0)
 				{
-					char error_nickname[] = "433 : Nickname is already in use\r\n";
+					char error_nickname[] = "433 rcheiko : Nickname is already in use.\r\n";
 					char error_msg[] = "Nickname is already in use\r\n";
 					send(event_fd, error_nickname, ft_strlen(error_nickname), 0);
 					send(event_fd, error_msg, ft_strlen(error_msg), 0);
@@ -429,7 +459,6 @@ class server{
 			std::string channel;
 			bool		ope;
 		};
-		//int m;
 		int					socketfd;
 		char*				password;
 		std::map<int, Node*>	users;
