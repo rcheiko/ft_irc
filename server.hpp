@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/17 11:08:19 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/17 12:56:07 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -162,6 +162,15 @@ class server{
 				i++;
 			return (i);
 		}
+		void	free_tab(char **str)
+		{
+			for(int i = 0; str[i]; i++)
+			{
+				free(str[i]);
+				str[i] = NULL;
+			}
+			free(str);
+		}
 		void	k_init()
 		{
 			int new_events;
@@ -217,29 +226,52 @@ class server{
 					else if (event[i].filter & EVFILT_READ)
 					{
 						char buf[1024];
+						char res[1024];
+						char **buf_info;
+						bzero(res, 1024);
+						bzero(buf, 1024);
 //						size_t bytes_read = 
-						bzero(buf, 1024);	
-						recv(event_fd, buf, 1024, 0);
-						std::cout << "BUFFER : " << buf << std::endl;
+					//	usleep(10000);
+						if (checkPassword[event_fd -5] == -3)
+						{
+							while (1)
+							{
+								recv(event_fd, buf, 1024, 0);
+								if (strcmp(buf, "") != 0)
+								{
+									strcat(res, buf);
+									buf_info = ft_split(res, '\n');
+									if (ft_strlen_tab(buf_info) == 4)
+									{
+										checkPassword[event_fd - 5] = -1;
+										break;
+									}
+									else
+										free_tab(buf_info);
+	
+								}
+								bzero(buf, 1024);
+							}
+						}
+						//std::cout << "BUFFER : " << buf << std::endl;
 						//buf[ft_strlen(buf)] = '\0';
-						char *user = NULL;
+					//	char *user = NULL;
 						char *pass = NULL;
-						char *nick = NULL;
+					//	char *nick = NULL;
 						if (checkPassword[event_fd - 5] == -1 || checkPassword[event_fd -5] == -2)
 						{
-							char **buf_info = ft_split(buf, '\n');
 							if (buf_info && buf_info[0] && buf_info[1] && buf_info[2] && buf_info[3])
 							{
 								pass = ft_substr(buf_info[1], 5, ft_strlen(buf_info[1]) - 5);
-								nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
-								user = ft_substr(buf_info[3], 5, ft_strlen(buf_info[3]) - 5);
+								//nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
+								//user = ft_substr(buf_info[3], 5, ft_strlen(buf_info[3]) - 5);
 								pass[ft_strlen(pass)-1] = '\0';
-								(void)user;
+								//(void)user;
 								pass_error(pass);
-								nick_error(nick);
-								users[event_fd]->nickname = nick;
+								//nick_error(nick);
+								//users[event_fd]->nickname = nick;
 							}
-							if (user)
+							/*if (user)
 							{
 								char **user_infos = ft_split(user, ' ');
 								if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
@@ -249,12 +281,17 @@ class server{
 								}
 								else
 									send(event_fd, "461 : Not enough parameters\r\n", 40, 0);
-							}
+							}*/
 						}
 						if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2 && checkPassword[event_fd - 5] != 2)
 						{
+							char welcome[] = "001 : Welcome on the server rcheiko!rcheiko@localhost\r\n";
 							checkPassword[event_fd - 5] = 2;
-							send(event_fd, "001 : Welcome on the server rcheiko!rcheiko@localhost\r\n", 60, 0);
+							send(event_fd, welcome, ft_strlen(welcome), 0);
+						//	if (m != 1)
+						//	{
+						//		m = 1;
+						//	}
 						}		
 						//if (bytes_read != 0)
 						//	std::cout << "read " << bytes_read << " bytes" << "\n";
@@ -346,7 +383,7 @@ class server{
 		{
 			for (int i = 0; i < 255 ; i++)
 			{
-				checkPassword[i] = -1;
+				checkPassword[i] = -3;
 			}
 		}
 		void	fillBool()
@@ -391,6 +428,7 @@ class server{
 			std::string channel;
 			bool		ope;
 		};
+		//int m;
 		int					socketfd;
 		char*				password;
 		std::map<int, Node*>	users;
