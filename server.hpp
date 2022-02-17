@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/17 18:12:37 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/17 19:20:12 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ class server{
 
 	public:
 
-		server(void){
+		server(void): ope_password("987"){
 			fillBool();
 			fillPassword();		
 		}
@@ -194,6 +194,7 @@ class server{
 				for (int i = 0; new_events > i; i++)
 				{
 					event_fd = event[i].ident;
+					std::cout << "FD = " << event_fd << "\n";
 					std::map<int, Node*>::iterator it = users.begin();
 					std::map<int, Node*>::iterator ite = users.end();
 					for (; it != ite; it++)
@@ -229,15 +230,67 @@ class server{
 						bzero(buf, 1024);
 						checkConnection();
 						welcomeRPL();
+						bzero(buf, 1024);
 						recv(event_fd, buf, 1024, 0);
-						std::cout << "USERS : " << users[event_fd]->nickname << std::endl;
-						std::cout << "USERS LENGTH : " << users[event_fd]->nickname.length() << std::endl;
+						//std::cout << "USERS : " << users[event_fd]->nickname << std::endl;
+						//std::cout << "USERS LENGTH : " << users[event_fd]->nickname.length() << std::endl;
 						std::cout << "BUFFER : " << buf << std::endl;
+						char **params = ft_split(buf, ' ');
+						if (strcmp(params[0], "OPER") == 0)
+						{
+							ope_command(params); //ajouter la dimension channel de wanis
+						}
+						else if (strcmp(params[0], "PRIVMSG") == 0)
+						{
+							msg_command(params);
+						}
 					}
 				}				
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		void msg_command(char **str)
+		{
+			std::map<int, Node*>::iterator it = users.begin();
+			std::map<int, Node*>::iterator ite = users.end();
+			for (; it != ite; it++)
+			{
+				char *user = &it->second->nickname[0];
+				if (strcmp(user, str[1]) == 0)
+				{
+					char *welcome = NULL;
+					std::string a;
+					std::string c = users[event_fd]->nickname;
+					std::string d = users[event_fd]->username;
+					a = c + "!" + d + "@localhost\r\n" + "PRIVMSG" + it->second->nickname + ":suce ma raie\r\n";
+					welcome = &a[0];
+					welcome[a.length()] = '\0';
+					send(it->first, welcome, ft_strlen(welcome), 0);
+				//	std::cout << "IT->FIRST = " << it->first << "\n";
+				//	send(it->first, str[2], ft_strlen(str[2]), 0);
+				}
+			}			
+		}
+		void ope_command(char **str)
+		{
+			char* tmp = &ope_password[0];
+			str[2] = ft_substr(str[2], 0, ft_strlen(str[2]) - 2);
+			if (str && ft_strlen_tab(str) == 3)
+			{
+				if (strcmp(tmp, str[2]) == 0)
+				{
+					if(users[event_fd]->ope == false)
+					{
+						users[event_fd]->ope = true;
+						send(event_fd, "381 : You are now an IRC operator\r\n", 50, 0);
+					}
+				}
+				else
+					send(event_fd, "464 : Password incorrect\r\n", 40, 0);
+			}
+			else
+				send(event_fd, "461 :Not enough parameters\r\n", 40, 0);
 		}
 		void	checkConnection()
 		{
@@ -467,8 +520,7 @@ class server{
 		struct kevent 		change_event[256], event[256];
 		int					checkPassword[256];
 		bool				check[256];
-
-
+		std::string			ope_password;
 };
 
 
