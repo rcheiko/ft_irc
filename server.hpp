@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/16 19:46:06 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/17 11:08:19 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -239,19 +239,23 @@ class server{
 								nick_error(nick);
 								users[event_fd]->nickname = nick;
 							}
-							char **user_infos = ft_split(user, ' ');
-							if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
+							if (user)
 							{
-								user_error(user_infos[0]);
+								char **user_infos = ft_split(user, ' ');
+								if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
+								{
+									user_error(user_infos[0]);
+									users[event_fd]->username = user_infos[0];
+								}
+								else
+									send(event_fd, "461 : Not enough parameters\r\n", 40, 0);
 							}
-							else
-								send(event_fd, "461 : Not enough parameters\r\n", 40, 0);
 						}
 						if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2 && checkPassword[event_fd - 5] != 2)
 						{
 							checkPassword[event_fd - 5] = 2;
 							send(event_fd, "001 : Welcome on the server rcheiko!rcheiko@localhost\r\n", 60, 0);
-						}	
+						}		
 						//if (bytes_read != 0)
 						//	std::cout << "read " << bytes_read << " bytes" << "\n";
 					}
