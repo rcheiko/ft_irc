@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/18 11:24:20 by whamoumi         ###   ########.fr       */
+/*   Updated: 2022/02/18 11:51:53 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -194,7 +194,7 @@ class server{
 				for (int i = 0; new_events > i; i++)
 				{
 					event_fd = event[i].ident;
-					std::cout << "FD = " << event_fd << "\n";
+					//std::cout << "FD = " << event_fd << "\n";
 					std::map<int, Node*>::iterator it = users.begin();
 					std::map<int, Node*>::iterator ite = users.end();
 					for (; it != ite; it++)
@@ -206,12 +206,14 @@ class server{
 					{
 						Node *node = new Node;
 						node->ope = false;			
+						node->username = "";
+						node->nickname = "";
 						users[event_fd] = node;
 					}
 					if (event[i].flags & EV_EOF)
 					{
 						std::cout << "Client has disconnected" << std::endl;;
-						checkPassword[event_fd - 5] = -1;
+						checkPassword[event_fd - 5] = -3;
 						users.erase(event_fd);
 						close(event_fd);
 					}
@@ -234,7 +236,7 @@ class server{
 						recv(event_fd, buf, 1024, 0);
 						//std::cout << "USERS : " << users[event_fd]->nickname << std::endl;
 						//std::cout << "USERS LENGTH : " << users[event_fd]->nickname.length() << std::endl;
-						std::cout << "BUFFER : " << buf << std::endl;
+						//std::cout << "BUFFER : " << buf << std::endl;
 						char **params = ft_split(buf, ' ');
 						if (strcmp(params[0], "OPER") == 0)
 						{
@@ -304,6 +306,7 @@ class server{
 				while (1)
 				{
 					recv(event_fd, buf, 1024, 0);
+					std::cout << "BUFFER : " << buf << std::endl;
 					if (strcmp(buf, "") != 0)
 					{
 						strcat(res, buf);
@@ -533,7 +536,7 @@ class server{
 				canals[user] = canal;
 			}
 			else
-				send(user, "461 : JOIN Not enough parameters\r\n", 36, 0);
+				send(user, "461", 3, 0);
 		}
 	private:
 		struct Node
@@ -564,7 +567,6 @@ class server{
 			static unsigned int actif_members;
 			bool	ope;
 		}		t_channels;
-		int					socketfd;
 		int					socketfd;
 		char*				password;
 		std::map<int, Node*>	users;
