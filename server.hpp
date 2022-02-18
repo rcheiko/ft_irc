@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/17 19:20:12 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/18 11:24:20 by whamoumi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -241,9 +241,9 @@ class server{
 							ope_command(params); //ajouter la dimension channel de wanis
 						}
 						else if (strcmp(params[0], "PRIVMSG") == 0)
-						{
 							msg_command(params);
-						}
+						else if (strncmp("JOIN ", buf, 5) == 0)
+							join_command(buf, event_fd);
 					}
 				}				
 			}
@@ -503,7 +503,38 @@ class server{
 			strf[i] = '\0';
 			return (strf);
 		}
-
+		void	join_command(char *buffer, int user)
+		{
+			(void)user;
+			char **buffer_split = ft_split(buffer, ' ');
+			if (ft_strlen_tab(buffer_split) > 1)
+			{
+				char **third_buffer;
+				char **second_buffer = ft_split(buffer_split[1], ',');
+				if (ft_strlen_tab(buffer_split) == 3)
+					third_buffer = ft_split(buffer_split[2], ',');
+				t_channels *canal = new t_channels[ft_strlen_tab(second_buffer)];
+				int i = 0;
+				int j = 0;
+				while(second_buffer[i])
+				{
+					canal[i].name_channels = second_buffer[i];
+					canal[i].password_channel = NULL;
+					if (ft_strlen_tab(buffer_split) == 3)
+					{
+						if (third_buffer[j])
+						{
+							canal[i].password_channel = third_buffer[j];
+							j++;
+						}
+					}
+					i++;
+				}
+				canals[user] = canal;
+			}
+			else
+				send(user, "461 : JOIN Not enough parameters\r\n", 36, 0);
+		}
 	private:
 		struct Node
 		{
@@ -512,9 +543,32 @@ class server{
 			std::string channel;
 			bool		ope;
 		};
+				typedef struct	s_mode{
+			bool o;
+			bool p;
+			bool s;
+			bool i;
+			bool t;
+			bool n;
+			bool m;
+			bool l;
+			bool b;
+			bool v;
+			bool k;
+		}				t_mode;
+		typedef struct	s_channels{
+			t_mode  mode;
+			char *name_channels;
+			char *password_channel;
+			int number_of_members;
+			static unsigned int actif_members;
+			bool	ope;
+		}		t_channels;
+		int					socketfd;
 		int					socketfd;
 		char*				password;
 		std::map<int, Node*>	users;
+		std::map<int, t_channels*>	canals;
 		sockaddr_in			sin;
 		int 				event_fd;
 		struct kevent 		change_event[256], event[256];
