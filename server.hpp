@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/18 11:51:53 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/18 13:59:33 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -265,7 +265,7 @@ class server{
 					std::string a;
 					std::string c = users[event_fd]->nickname;
 					std::string d = users[event_fd]->username;
-					a = c + "!" + d + "@localhost\r\n" + "PRIVMSG" + it->second->nickname + ":suce ma raie\r\n";
+					a = c + "!" + d + "@localhost " + "PRIVMSG" + it->second->nickname + " " + str[2] + "\r\n";
 					welcome = &a[0];
 					welcome[a.length()] = '\0';
 					send(it->first, welcome, ft_strlen(welcome), 0);
@@ -274,7 +274,11 @@ class server{
 				}
 			}			
 		}
-		void ope_command(char **str)
+/*		void	quit_command(char *str)
+		{
+			
+		}*/
+		void	ope_command(char **str)
 		{
 			char* tmp = &ope_password[0];
 			str[2] = ft_substr(str[2], 0, ft_strlen(str[2]) - 2);
