@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/18 14:07:57 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/19 11:55:36 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -171,6 +171,20 @@ class server{
 			}
 			free(str);
 		}
+		int is_in(char *str)
+		{
+			int i = 0;
+			if (str)
+			{
+				while (str[i])
+				{
+					if (str[i] == ',')
+						return (1);
+					i++;
+				}
+			}
+			return (0);
+		}
 		void	k_init()
 		{
 			int new_events;
@@ -233,7 +247,8 @@ class server{
 						checkConnection();
 						welcomeRPL();
 						bzero(buf, 1024);
-						recv(event_fd, buf, 1024, 0);
+						if (recv(event_fd, buf, 1024, 0) < 0)
+							perror("recv error");
 						//std::cout << "USERS : " << users[event_fd]->nickname << std::endl;
 						//std::cout << "USERS LENGTH : " << users[event_fd]->nickname.length() << std::endl;
 						//std::cout << "BUFFER : " << buf << std::endl;
@@ -246,11 +261,39 @@ class server{
 							msg_command(params);
 						else if (strncmp("JOIN ", buf, 5) == 0)
 							join_command(buf, event_fd);
+						else if (strcmp(params[0], "PART") == 0)
+							part_command(params);
 					}
 				}				
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		void part_command(char **str)
+		{
+			std::map<int, t_channels*>::iterator it = canals.begin();
+			std::map<int, t_channels*>::iterator ite = canals.end();
+			if (is_in(str[1]))
+			{
+				char **channels = ft_split(str[1], ',');
+				for(; it != ite; it++)
+				{
+					if (it->first == event_fd && (strcmp(it->second[0].name_channels, channels[1]) == 0 || strcmp(it->second[0].name_channels, channels[2]) == 0))
+						it->second[0].fill = 0;
+					else if (it->first == event_fd && (strcmp(it->second[1].name_channels, channels[1]) == 0 || strcmp(it->second[1].name_channels, channels[2]) == 0))
+						it->second[0].fill = 0;
+				}
+			}
+			else
+			{
+				for(; it != ite; it++)
+				{
+					if (it->first == event_fd && strcmp(it->second[0].name_channels, str[1]) == 0)
+						it->second[0].fill = 0;
+					else if (it->first == event_fd && strcmp(it->second[1].name_channels, str[1]) == 0)
+						it->second[1].fill = 0;
+				}
+			}
 		}
 		void msg_command(char **str)
 		{
@@ -268,7 +311,8 @@ class server{
 					a = c + "!" + d + "@localhost " + "PRIVMSG " + it->second->nickname + " " + str[2] + "\r\n";
 					welcome = &a[0];
 					welcome[a.length()] = '\0';
-					send(it->first, welcome, ft_strlen(welcome), 0);
+					if (send(it->first, welcome, ft_strlen(welcome), 0) < 0)
+						perror("send error");
 				//	std::cout << "IT->FIRST = " << it->first << "\n";
 				//	send(it->first, str[2], ft_strlen(str[2]), 0);
 				}
@@ -291,14 +335,17 @@ class server{
 					if(users[event_fd]->ope == false)
 					{
 						users[event_fd]->ope = true;
-						send(event_fd, "381 : You are now an IRC operator\r\n", 50, 0);
+						if (send(event_fd, "381 : You are now an IRC operator\r\n", 50, 0) < 0)
+							perror("send error");
 					}
 				}
 				else
-					send(event_fd, "464 : Password incorrect\r\n", 40, 0);
+					if (send(event_fd, "464 : Password incorrect\r\n", 40, 0) < 0)
+						perror("send error");
 			}
 			else
-				send(event_fd, "461 :Not enough parameters\r\n", 40, 0);
+				if (send(event_fd, "461 :Not enough parameters\r\n", 40, 0) < 0)
+					perror("send error");
 		}
 		void	checkConnection()
 		{
@@ -311,7 +358,8 @@ class server{
 			{
 				while (1)
 				{
-					recv(event_fd, buf, 1024, 0);
+					if (recv(event_fd, buf, 1024, 0) < 0)
+						perror("recv error");
 					std::cout << "BUFFER : " << buf << std::endl;
 					if (strcmp(buf, "") != 0)
 					{
@@ -358,7 +406,8 @@ class server{
 						users[event_fd]->username = user_infos[0];
 					}
 					else
-						send(event_fd, "461 : Not enough parameters\r\n", 40, 0);
+						if (send(event_fd, "461 : Not enough parameters\r\n", 40, 0) < 0)
+							perror("send error");
 				}
 			}
 
@@ -376,7 +425,8 @@ class server{
 				welcome = &a[0];
 				welcome[a.length()] = '\0';
 				checkPassword[event_fd - 5] = 2;
-				send(event_fd, welcome, ft_strlen(welcome), 0);
+				if (send(event_fd, welcome, ft_strlen(welcome), 0) < 0)
+					perror("send error");
 			}		
 		}
 		void	user_error(char *str)
@@ -388,7 +438,8 @@ class server{
 				char *user = &it->second->username[0];
 				if (strcmp(user, str) == 0)
 				{
-					send(event_fd, "462 : Unauthorized command (already registered)\r\n", 45, 0);
+					if (send(event_fd, "462 : Unauthorized command (already registered)\r\n", 45, 0) < 0)
+						perror("send error");
 					checkPassword[event_fd - 5] = -2;
 				}
 			}
@@ -397,15 +448,18 @@ class server{
 		{
 			char no_param[] = "432 : Not enough parameters\r\n";
 			if (!ft_strlen(str))
-				send(event_fd, no_param, ft_strlen(no_param), 0);
+				if (send(event_fd, no_param, ft_strlen(no_param), 0) < 0)
+					perror("send error");
 			if (strcmp(password, str) == 0 && checkPassword[event_fd - 5] != -2)
 				checkPassword[event_fd - 5] = 1;
 			else
 			{
 				char falsePass[] = "433 : Password incorrect\r\n";
 				char falsePass2[] = "Password incorrect\r\n";
-				send(event_fd, falsePass, ft_strlen(falsePass), 0);
-				send(event_fd, falsePass2, ft_strlen(falsePass2), 0);
+				if (send(event_fd, falsePass, ft_strlen(falsePass), 0) < 0)
+					perror("send error");
+				if (send(event_fd, falsePass2, ft_strlen(falsePass2), 0) < 0)
+					perror("send error");
 			}
 		}
 		void	nick_error(char *str)
@@ -420,20 +474,25 @@ class server{
 				{
 					char error_nickname[] = "433 rcheiko : Nickname is already in use.\r\n";
 					char error_msg[] = "Nickname is already in use\r\n";
-					send(event_fd, error_nickname, ft_strlen(error_nickname), 0);
-					send(event_fd, error_msg, ft_strlen(error_msg), 0);
+					if (send(event_fd, error_nickname, ft_strlen(error_nickname), 0) < 0)
+						perror("send error");
+					if (send(event_fd, error_msg, ft_strlen(error_msg), 0) < 0)
+						perror("send error");
 					checkPassword[event_fd - 5] = -2;
 				}
 			}
 			char no_nickname[] = "432 : No nickname given\r\n";
 			if (!ft_strlen(str))
-				send(event_fd, no_nickname, ft_strlen(no_nickname), 0);
+				if (send(event_fd, no_nickname, ft_strlen(no_nickname), 0) < 0)
+					perror("send error");
 			char error_nick[] = "433 : Erroneous nickname\r\n";
 			char error_nick2[] = "Erroneous nickname\r\n";
 			if (ft_strlen(str) > 9)
 			{
-				send(event_fd, error_nick, ft_strlen(error_nick), 0);
-				send(event_fd, error_nick2, ft_strlen(error_nick2), 0);
+				if (send(event_fd, error_nick, ft_strlen(error_nick), 0) < 0) 
+					perror("send error");
+				if (send(event_fd, error_nick2, ft_strlen(error_nick2), 0) < 0)
+					perror("send error");
 				checkPassword[event_fd - 5] = -2;
 			}
 		}
@@ -450,7 +509,8 @@ class server{
 				exit(EXIT_FAILURE);  
 			}
 			std::cout << "\t--New client connect from port no. " << ntohs(sin.sin_port) << "\n";
-			send(event_fd, "Please fill the following informations : \n", 41, 0);
+			if (send(event_fd, "Please fill the following informations : \n", 41, 0) < 0)
+				perror("send error");
 			return (d);
 		}
 		void	closeAllFd()
@@ -572,6 +632,7 @@ class server{
 			int number_of_members;
 			static unsigned int actif_members;
 			bool	ope;
+			bool	fill;
 		}		t_channels;
 		int					socketfd;
 		char*				password;
