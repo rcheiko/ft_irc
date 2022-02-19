@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/19 11:55:36 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/19 18:55:22 by whamoumi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,7 +75,6 @@ class server{
 			{
 				tab[i] = str[i];
 				i++;
-			}
 			tab[i] = '\0';
 			return (tab);
 		}
@@ -97,11 +96,10 @@ class server{
 				while (s[i] == c)
 					i++;
 				if (s[i] && s[i] != c)
-				{
 					tab[i_tab] = tab_malloc(s + i, c);
 					i_tab++;
 					while (s[i] && s[i] != c)
-						i++;
+						i++
 				}
 			}
 			tab[i_tab] = 0;
@@ -131,11 +129,9 @@ class server{
 			else
 				std::cout << "\t--Set Socket Success" << std::endl;
 
-			if (bind(socketfd, (sockaddr*)&sin, sizeof(sin)) == -1)
-			{
+			if (bind(socketfd, (sockaddr*)&sin, sizeof(sin)) == -1){
 				std::cout << "\t--Bind error" << std::endl;
 				exit(EXIT_FAILURE);
-			}
 			else
 				std::cout << "\t--Bind was linked" << std::endl;
 
@@ -157,9 +153,8 @@ class server{
 
 		int ft_strlen_tab(char **str)
 		{
-			int i = 0;
 			while (str[i])
-				i++;
+				i++
 			return (i);
 		}
 		void	free_tab(char **str)
@@ -210,7 +205,6 @@ class server{
 					event_fd = event[i].ident;
 					//std::cout << "FD = " << event_fd << "\n";
 					std::map<int, Node*>::iterator it = users.begin();
-					std::map<int, Node*>::iterator ite = users.end();
 					for (; it != ite; it++)
 					{
 						if (it->first == event_fd)
@@ -236,7 +230,6 @@ class server{
 						con = init_accept();
 						EV_SET(change_event, con, EVFILT_READ, EV_ADD, 0, 0, NULL);
 						if (kevent(kq, change_event, 1, NULL, 0, NULL) < 0)
-						{
 							perror("kevent error");
 						}
 					}
@@ -417,14 +410,13 @@ class server{
 			if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2 && checkPassword[event_fd - 5] != 2)
 			{
 				char *welcome = NULL;
-				std::string a = "001 ";
+				std::string a = "002 ";
 				std::string b = " : Welcome on the server ";
 				std::string c = users[event_fd]->nickname;
 				std::string d = users[event_fd]->username;
 				a = a + users[event_fd]->nickname + b + c + "!" + d + "@localhost\r\n";
 				welcome = &a[0];
 				welcome[a.length()] = '\0';
-				checkPassword[event_fd - 5] = 2;
 				if (send(event_fd, welcome, ft_strlen(welcome), 0) < 0)
 					perror("send error");
 			}		
@@ -465,7 +457,6 @@ class server{
 		void	nick_error(char *str)
 		{
 			std::map<int, Node*>::iterator it = users.begin();
-			std::map<int, Node*>::iterator ite = users.end();
 			for (; it != ite; it++)
 			{
 				char *user = &it->second->nickname[0];
@@ -579,7 +570,7 @@ class server{
 			if (ft_strlen_tab(buffer_split) > 1)
 			{
 				char **third_buffer;
-				char **second_buffer = ft_split(buffer_split[1], ',');
+				char **second_buffer = ft_split(buffer_split[5], ',');
 				if (ft_strlen_tab(buffer_split) == 3)
 					third_buffer = ft_split(buffer_split[2], ',');
 				t_channels *canal = new t_channels[ft_strlen_tab(second_buffer)];
@@ -644,7 +635,7 @@ class server{
 		int					checkPassword[256];
 		bool				check[256];
 		std::string			ope_password;
-};
+
 
 
 #endif
