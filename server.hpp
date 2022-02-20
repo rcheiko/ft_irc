@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/20 12:38:52 by whamoumi         ###   ########.fr       */
+/*   Updated: 2022/02/20 14:44:59 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -256,10 +256,10 @@ class server
 						//std::cout << "USERS LENGTH : " << users[event_fd]->nickname.length() << std::endl;
 						std::cout << "BUFFER : " << buf << std::endl;
 						char **params = ft_split(buf, ' ');
+						quit_command(buf);
+						//topic_command(buf);
 						if (strcmp(params[0], "OPER") == 0)
-						{
 							ope_command(params); //ajouter la dimension channel de wanis
-						}
 						else if (strcmp(params[0], "PRIVMSG") == 0)
 							msg_command(params);
 						else if (strncmp("JOIN ", buf, 5) == 0)
@@ -271,6 +271,52 @@ class server
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		void	topic_command(char *str)
+		{
+			if (strncmp(str, "TOPIC", 5) == 0)
+			{
+				char *welcome = NULL;
+				std::string b = ":";
+				std::string c = users[event_fd]->nickname;
+				std::string d = " TOPIC :#1 ";
+				std::string a = b + c + d + ":SALUT MEC CA VA" + "\r\n";
+				welcome = &a[0];
+				std::cout << "YOOOO : " << welcome << std::endl;
+				send(event_fd, welcome, ft_strlen(welcome), 0);
+				return;
+
+			}
+		}
+		void	quit_command(char *str)
+		{
+			std::map<int, Node*>::iterator it = users.begin();
+			std::map<int, Node*>::iterator ite = users.end();
+			std::string a = users[event_fd]->nickname;
+			std::string b = users[event_fd]->username;
+			if (strcmp(str, "QUIT :leaving\r\n") == 0)
+			{
+				std::string quitNickname = a + "!" + b + "@localhost QUIT :" + users[event_fd]->nickname + "\r\n";
+				char *quitNick = &quitNickname[0];
+				for (; it != ite; it++)
+				{
+					send(it->first, quitNick, ft_strlen(quitNick), 0);
+				}
+				return;
+			}
+			else if (strncmp(str, "QUIT :", 6) == 0)
+			{
+				char *msg = ft_substr(str, 6, ft_strlen(str) - 6);
+				std::string msg_str(msg);
+				std::string quitMsg = a + "!" + b + "@localhost QUIT :" + msg_str + "\r\n";
+				free(msg);
+				msg = NULL;
+				msg = &quitMsg[0];
+				for (; it != ite; it++)
+				{
+					send(it->first, msg, ft_strlen(msg), 0);
+				}
+			}
 		}
 		void part_command(char **str)
 		{
