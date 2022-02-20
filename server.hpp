@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/19 18:55:22 by whamoumi         ###   ########.fr       */
+/*   Updated: 2022/02/20 12:38:52 by whamoumi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,12 +27,13 @@
 # include <stdlib.h>
 # include <arpa/inet.h>
 # include <fcntl.h>
+# include <vector>
 
 
-class server{
+class server
+{
 
 	public:
-
 		server(void): ope_password("987"){
 			fillBool();
 			fillPassword();		
@@ -75,6 +76,7 @@ class server{
 			{
 				tab[i] = str[i];
 				i++;
+			}
 			tab[i] = '\0';
 			return (tab);
 		}
@@ -96,10 +98,11 @@ class server{
 				while (s[i] == c)
 					i++;
 				if (s[i] && s[i] != c)
+				{
 					tab[i_tab] = tab_malloc(s + i, c);
 					i_tab++;
 					while (s[i] && s[i] != c)
-						i++
+						i++;
 				}
 			}
 			tab[i_tab] = 0;
@@ -117,6 +120,7 @@ class server{
 			else
 				std::cout << "\t--Socket created" << std::endl;
 			sin.sin_family = AF_INET;
+			//envoie de l'erreur ERR_NEEDMOREPARAMS 461 "<commande> :Not enough parameters";
 			sin.sin_port = htons(port);
 			sin.sin_addr.s_addr = inet_addr("127.0.0.1");
 
@@ -129,9 +133,11 @@ class server{
 			else
 				std::cout << "\t--Set Socket Success" << std::endl;
 
-			if (bind(socketfd, (sockaddr*)&sin, sizeof(sin)) == -1){
+			if (bind(socketfd, (sockaddr*)&sin, sizeof(sin)) == -1)
+			{
 				std::cout << "\t--Bind error" << std::endl;
 				exit(EXIT_FAILURE);
+			}
 			else
 				std::cout << "\t--Bind was linked" << std::endl;
 
@@ -153,8 +159,9 @@ class server{
 
 		int ft_strlen_tab(char **str)
 		{
+			int i = 0;
 			while (str[i])
-				i++
+				i++;
 			return (i);
 		}
 		void	free_tab(char **str)
@@ -205,6 +212,7 @@ class server{
 					event_fd = event[i].ident;
 					//std::cout << "FD = " << event_fd << "\n";
 					std::map<int, Node*>::iterator it = users.begin();
+					std::map<int, Node*>::iterator ite = users.end();
 					for (; it != ite; it++)
 					{
 						if (it->first == event_fd)
@@ -213,7 +221,8 @@ class server{
 					if (it == ite)
 					{
 						Node *node = new Node;
-						node->ope = false;			
+						node->ope = false;
+						node->nbr_channel = 0;			
 						node->username = "";
 						node->nickname = "";
 						users[event_fd] = node;
@@ -230,6 +239,7 @@ class server{
 						con = init_accept();
 						EV_SET(change_event, con, EVFILT_READ, EV_ADD, 0, 0, NULL);
 						if (kevent(kq, change_event, 1, NULL, 0, NULL) < 0)
+						{
 							perror("kevent error");
 						}
 					}
@@ -244,7 +254,7 @@ class server{
 							perror("recv error");
 						//std::cout << "USERS : " << users[event_fd]->nickname << std::endl;
 						//std::cout << "USERS LENGTH : " << users[event_fd]->nickname.length() << std::endl;
-						//std::cout << "BUFFER : " << buf << std::endl;
+						std::cout << "BUFFER : " << buf << std::endl;
 						char **params = ft_split(buf, ' ');
 						if (strcmp(params[0], "OPER") == 0)
 						{
@@ -255,7 +265,7 @@ class server{
 						else if (strncmp("JOIN ", buf, 5) == 0)
 							join_command(buf, event_fd);
 						else if (strcmp(params[0], "PART") == 0)
-							part_command(params);
+								part_command(params);
 					}
 				}				
 			}
@@ -264,59 +274,98 @@ class server{
 		}
 		void part_command(char **str)
 		{
-			std::map<int, t_channels*>::iterator it = canals.begin();
-			std::map<int, t_channels*>::iterator ite = canals.end();
-			if (is_in(str[1]))
+			std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
+			std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
+			std::vector<int>::iterator it2 = fd_channels.begin();
+			std::vector<int>::iterator ite2 = fd_channels.end();
+			for (; it != ite; it++)
 			{
-				char **channels = ft_split(str[1], ',');
-				for(; it != ite; it++)
+				if (strcmp(ft_substr(it->first->name_channels, 0 ,ft_strlen(it->first->name_channels) - 2), str[1]) == 0)
 				{
-					if (it->first == event_fd && (strcmp(it->second[0].name_channels, channels[1]) == 0 || strcmp(it->second[0].name_channels, channels[2]) == 0))
-						it->second[0].fill = 0;
-					else if (it->first == event_fd && (strcmp(it->second[1].name_channels, channels[1]) == 0 || strcmp(it->second[1].name_channels, channels[2]) == 0))
-						it->second[0].fill = 0;
+					for(; it2 != ite2; it2++)
+					{
+						char *welcome = NULL;
+						std::string a;
+						std::string c = users[event_fd]->nickname;
+						std::string d = users[event_fd]->username;
+						a = ":" + c + "!" + d + "@localhost " + "PART " + str[1] + " :" + str[2] + "\r\n";
+						welcome = &a[0];
+						welcome[a.length()] = '\0';
+						if(*it2 != event_fd)
+						{
+							if (send(*it2, welcome, ft_strlen(welcome), 0) < 0)
+								perror("send error");
+						}
+						else
+							fd_channels.erase(it2);
+						std::cout << "uEND" << *it2 << std::endl;
+					}
+				}
+			}	
+		}
+		void msg_command(char **str)
+		{
+			if (str[1][0] != '#')
+			{
+				std::map<int, Node*>::iterator it = users.begin();
+				std::map<int, Node*>::iterator ite = users.end();
+				for (; it != ite; it++)
+				{
+					char *user = &it->second->nickname[0];
+					if (strcmp(user, str[1]) == 0)
+					{
+						char *welcome = NULL;
+						std::string a;
+						std::string c = users[event_fd]->nickname;
+						std::string d = users[event_fd]->username;
+						a = c + "!" + d + "@localhost " + "PRIVMSG " + it->second->nickname + " " + str[2] + "\r\n";
+						welcome = &a[0];
+						welcome[a.length()] = '\0';
+						if (send(it->first, welcome, ft_strlen(welcome), 0) < 0)
+							perror("send error");
+						//	std::cout << "IT->FIRST = " << it->first << "\n";
+						//	send(it->first, str[2], ft_strlen(str[2]), 0);
+					}
 				}
 			}
 			else
 			{
-				for(; it != ite; it++)
+				std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
+				std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
+				std::vector<int>::iterator it2 = fd_channels.begin();
+				std::vector<int>::iterator ite2 = fd_channels.end();
+				for (; it != ite; it++)
 				{
-					if (it->first == event_fd && strcmp(it->second[0].name_channels, str[1]) == 0)
-						it->second[0].fill = 0;
-					else if (it->first == event_fd && strcmp(it->second[1].name_channels, str[1]) == 0)
-						it->second[1].fill = 0;
-				}
+
+					std::cout << "it -->"<<ft_strlen(it->first->name_channels) << std::endl; 
+					std::cout << " str -->" <<ft_strlen(str[1]) << std::endl;
+					std::cout << " it -->"<<it->first->name_channels << std::endl;
+					std::cout << " str -->"<< str[1] << std::endl;
+					if (strcmp(ft_substr(it->first->name_channels, 0 ,ft_strlen(it->first->name_channels) - 2), str[1]) == 0)
+					{
+						std::cout << "meme channels\n";
+						for(; it2 != ite2; it2++)
+						{
+							std::cout << "user --> " << *it2 << std::endl;
+							char *welcome = NULL;
+							std::string a;
+							std::string c = users[event_fd]->nickname;
+							std::string d = users[event_fd]->username;
+							a = ":" + c + "!" + d + "@localhost " + "PRIVMSG " + str[1] + " " + str[2] + "\r\n";
+							welcome = &a[0];
+							welcome[a.length()] = '\0';
+							if(*it2 != event_fd)
+							{
+								if (send(*it2, welcome, ft_strlen(welcome), 0) < 0)
+									perror("send error");
+							}
+							std::cout << "uEND" << *it2 << std::endl;
+						}
+					}
+
+				}			
 			}
 		}
-		void msg_command(char **str)
-		{
-			std::map<int, Node*>::iterator it = users.begin();
-			std::map<int, Node*>::iterator ite = users.end();
-			for (; it != ite; it++)
-			{
-				char *user = &it->second->nickname[0];
-				if (strcmp(user, str[1]) == 0)
-				{
-					char *welcome = NULL;
-					std::string a;
-					std::string c = users[event_fd]->nickname;
-					std::string d = users[event_fd]->username;
-					a = c + "!" + d + "@localhost " + "PRIVMSG " + it->second->nickname + " " + str[2] + "\r\n";
-					welcome = &a[0];
-					welcome[a.length()] = '\0';
-					if (send(it->first, welcome, ft_strlen(welcome), 0) < 0)
-						perror("send error");
-				//	std::cout << "IT->FIRST = " << it->first << "\n";
-				//	send(it->first, str[2], ft_strlen(str[2]), 0);
-				}
-			}			
-		}
-/*		void	quit_command(char *str)/
-		{
-			char **quit;
-
-			quit = 
-		}*/
 		void	ope_command(char **str)
 		{
 			char* tmp = &ope_password[0];
@@ -410,13 +459,15 @@ class server{
 			if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2 && checkPassword[event_fd - 5] != 2)
 			{
 				char *welcome = NULL;
-				std::string a = "002 ";
-				std::string b = " : Welcome on the server ";
+				std::string a = "001 ";
+				std::string b = " :Welcome to the Internet Relay Network ";
 				std::string c = users[event_fd]->nickname;
 				std::string d = users[event_fd]->username;
 				a = a + users[event_fd]->nickname + b + c + "!" + d + "@localhost\r\n";
+				std::cout << a ;
 				welcome = &a[0];
 				welcome[a.length()] = '\0';
+				checkPassword[event_fd - 5] = 2;
 				if (send(event_fd, welcome, ft_strlen(welcome), 0) < 0)
 					perror("send error");
 			}		
@@ -457,6 +508,7 @@ class server{
 		void	nick_error(char *str)
 		{
 			std::map<int, Node*>::iterator it = users.begin();
+			std::map<int, Node*>::iterator ite = users.end();
 			for (; it != ite; it++)
 			{
 				char *user = &it->second->nickname[0];
@@ -563,37 +615,172 @@ class server{
 			strf[i] = '\0';
 			return (strf);
 		}
+
+		int good_name_channel(char *str)
+		{
+			std::cout << "str " <<str << std::endl;
+			int i = 0;
+			if (ft_strlen(str) > 50)
+				return 0;
+			if (str)
+			{
+				if (str[0] == '#' || str[0] == '&' || str[0] == '!' || str[0] == '+')
+				{
+					i++;
+					while (str[i])
+					{
+						if (str[i] == ' ')
+						{
+							std::cout << "oui"<< std::endl;
+							return 0;
+						}
+						i++;
+					}
+					return 1;
+				}
+				std::cout << "oui"<< std::endl;
+				return 0;
+			}
+			return 0;
+		}
+
+		int		channel_already_exist(char *str)
+		{
+			std::map<t_channels*, std::vector<int > >::iterator it = canals.begin();
+			std::map<t_channels*, std::vector<int > >::iterator ite = canals.end();
+			for (; it != ite; it++)
+			{
+				if (strcmp(it->first->name_channels, str) == 0)
+				{
+					std::cout << "ALREADY EXIST\n";
+					return 0;
+				}
+			}
+			return 1;
+		}
+
+
+		int good_password_channel(char *str, char *channel_name)
+		{
+			std::map<t_channels*, std::vector<int > >::iterator it = canals.begin();
+			std::map<t_channels*, std::vector<int > >::iterator ite = canals.end();
+			for (; it != ite; it++)
+			{
+				if (strcmp(it->first->name_channels, channel_name) == 0)
+				{
+					if (strcmp(it->first->password_channel, str) == 0)
+						return 0;
+				}
+			}
+			return 1;
+		}
 		void	join_command(char *buffer, int user)
 		{
-			(void)user;
+
 			char **buffer_split = ft_split(buffer, ' ');
-			if (ft_strlen_tab(buffer_split) > 1)
+			if (ft_strlen_tab(buffer_split) > 1 && ft_strlen_tab(buffer_split) < 4)
 			{
-				char **third_buffer;
-				char **second_buffer = ft_split(buffer_split[5], ',');
-				if (ft_strlen_tab(buffer_split) == 3)
-					third_buffer = ft_split(buffer_split[2], ',');
-				t_channels *canal = new t_channels[ft_strlen_tab(second_buffer)];
-				int i = 0;
-				int j = 0;
-				while(second_buffer[i])
+
+				if (users[user]->nbr_channel < 2) 
 				{
-					canal[i].name_channels = second_buffer[i];
-					canal[i].password_channel = NULL;
-					if (ft_strlen_tab(buffer_split) == 3)
+					char **channel_split = ft_split(buffer_split[1], ',');
+					int i = -1;
+					while (channel_split[++i]) 					
 					{
-						if (third_buffer[j])
+						if(good_name_channel(channel_split[i]) == 1) // si le nom du channel est juste
 						{
-							canal[i].password_channel = third_buffer[j];
-							j++;
+							t_channels *canaux = new t_channels;
+							canaux->name_channels = channel_split[i];
+							std::cout << channel_split[i] << " " << canaux->name_channels << std::endl;
+							users[user]->nbr_channel++;
+							if(buffer_split[2])
+							{	
+								char **password_buffer = ft_split(buffer_split[2], ',');
+								canaux->password_channel = password_buffer[i];
+							}
+							fd_channels.push_back(user);
+							canals[canaux] = fd_channels;
+							std::vector<int>::iterator it2 = fd_channels.begin();
+							std::vector<int>::iterator ite2 = fd_channels.end();
+							for(; it2 != ite2; it2++)
+							{
+								char *welcome = NULL;
+								std::string a;
+								std::string c = users[user]->nickname;
+								std::string d = users[user]->username;
+								a = ":" + c + "!" + d + "@localhost JOIN " + ft_substr(canaux->name_channels, 0, ft_strlen(canaux->name_channels) - 2) +"\r\n";
+								welcome = &a[0];
+								welcome[a.length()] = '\0';
+								if(*it2 != user)
+								{
+									if (send(*it2, welcome, ft_strlen(welcome), 0) < 0)
+										perror("send error");
+								}
+							}
+							char *welcome = NULL;
+							std::string a = ":localhost 332 ";
+							std::string b = users[user]->nickname;
+							a = a + b + " " + ft_substr(canaux->name_channels, 0, ft_strlen(canaux->name_channels) - 2) + " " + ":VOICI LE TOPIC DE CE CHANNEL\r\n";
+							welcome = &a[0];
+							welcome[a.length()] = '\0';
+							if (send(event_fd, welcome, ft_strlen(welcome), 0) < 0)
+								perror("send error");
+							char *welcomee = NULL;
+							std::string c = ":localhost 353 ";
+							std::string d = users[user]->nickname;
+							c = c + d + " = " + ft_substr(canaux->name_channels, 0, ft_strlen(canaux->name_channels) - 2) + " " + ":METTRE LA LISTE DES USERS DU CHANNEL\r\n";
+							welcomee = &c[0];
+							welcomee[c.length()] = '\0';
+							if (send(event_fd, welcomee, ft_strlen(welcomee), 0) < 0)
+								perror("send error");
+							char *welcomeee = NULL;
+							std::string e = ":localhost 366 ";
+							std::string f = users[user]->nickname;
+							e = e + f + " " + ft_substr(canaux->name_channels, 0, ft_strlen(canaux->name_channels) - 2) + " " + ":End of NAMES list\r\n";
+							welcomeee = &e[0];
+							welcomeee[e.length()] = '\0';
+							if (send(event_fd, welcomeee, ft_strlen(welcomeee), 0) < 0)
+								perror("send error");
+							//std::cout << "premiere fois channel cree" << std::endl;
+
+						}
+						else
+						{
+							char *welcome = NULL;
+							std::string a;
+							std::string c = "403";
+							std::string d = " :No such channel";
+							a = c + d + "\r\n";
+							welcome = &a[0];
+							welcome[a.length()] = '\0';
+							send(user, welcome, ft_strlen(welcome), 0);
 						}
 					}
-					i++;
 				}
-				canals[user] = canal;
+				else
+				{
+					char *welcome = NULL;
+					std::string a;
+					std::string c = "405";
+					std::string d = " :You have joined too many channels";
+					a = c + d + "\r\n";
+					welcome = &a[0];
+					welcome[a.length()] = '\0';
+					send(user, welcome, ft_strlen(welcome), 0);
+				}
 			}
 			else
-				send(user, "461", 3, 0);
+			{
+				char *welcome = NULL;
+				std::string a;
+				std::string c = "461";
+				std::string d = " :Not enough parameters";
+				a = c + d + "\r\n";
+				welcome = &a[0];
+				welcome[a.length()] = '\0';
+				send(user, welcome, ft_strlen(welcome), 0);
+			}
+			//std::cout << " end" << std::endl;
 		}
 	private:
 		struct Node
@@ -601,9 +788,10 @@ class server{
 			std::string nickname;
 			std::string username;
 			std::string channel;
+			unsigned int nbr_channel;
 			bool		ope;
 		};
-				typedef struct	s_mode{
+		typedef struct	s_mode{
 			bool o;
 			bool p;
 			bool s;
@@ -628,14 +816,15 @@ class server{
 		int					socketfd;
 		char*				password;
 		std::map<int, Node*>	users;
-		std::map<int, t_channels*>	canals;
+		std::vector<int>		fd_channels;
+		std::map<t_channels*, std::vector<int> >	canals;
 		sockaddr_in			sin;
 		int 				event_fd;
 		struct kevent 		change_event[256], event[256];
 		int					checkPassword[256];
 		bool				check[256];
 		std::string			ope_password;
-
+};
 
 
 #endif
