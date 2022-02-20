@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/20 14:44:59 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/20 16:53:51 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -343,7 +343,13 @@ class server
 								perror("send error");
 						}
 						else
+						{
 							fd_channels.erase(it2);
+//							std::string quitcmd = "362 YOOOOOOO " + c + "!" + d + "@localhost\r\n";
+//							char	*strr = &quitcmd[0];
+//							send(*it2, strr, ft_strlen(strr), 0);
+//							std::cout << "YOOOOOOO\n";
+						}
 						std::cout << "uEND" << *it2 << std::endl;
 					}
 				}
@@ -364,7 +370,15 @@ class server
 						std::string a;
 						std::string c = users[event_fd]->nickname;
 						std::string d = users[event_fd]->username;
-						a = c + "!" + d + "@localhost " + "PRIVMSG " + it->second->nickname + " " + str[2] + "\r\n";
+						a = c + "!" + d + "@localhost " + "PRIVMSG " + it->second->nickname + " ";
+						for (int i = 2; str[i]; i++)
+						{
+							if (str[i] != NULL && str[i + 1] != NULL)
+								a = a + str[i] + " ";
+							else
+								a = a + str[i];
+						}
+						a = a + "\r\n";
 						welcome = &a[0];
 						welcome[a.length()] = '\0';
 						if (send(it->first, welcome, ft_strlen(welcome), 0) < 0)
@@ -397,7 +411,15 @@ class server
 							std::string a;
 							std::string c = users[event_fd]->nickname;
 							std::string d = users[event_fd]->username;
-							a = ":" + c + "!" + d + "@localhost " + "PRIVMSG " + str[1] + " " + str[2] + "\r\n";
+							a = ":" + c + "!" + d + "@localhost " + "PRIVMSG " + str[1] + " ";
+							for (int i = 2; str[i]; i++)
+							{
+								if (str[i] != NULL && str[i + 1] != NULL)
+									a = a + str[i] + " ";
+								else
+									a = a + str[i];
+							}
+							a = a + "\r\n";
 							welcome = &a[0];
 							welcome[a.length()] = '\0';
 							if(*it2 != event_fd)
