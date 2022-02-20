@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/20 16:53:51 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/20 17:10:25 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,8 @@ class server
 {
 
 	public:
-		server(void): ope_password("987"){
+		server(void): ope_password("987")
+		{
 			fillBool();
 			fillPassword();		
 		}
@@ -344,6 +345,7 @@ class server
 						}
 						else
 						{
+							send(*it2, welcome, ft_strlen(welcome), 0);
 							fd_channels.erase(it2);
 //							std::string quitcmd = "362 YOOOOOOO " + c + "!" + d + "@localhost\r\n";
 //							char	*strr = &quitcmd[0];
