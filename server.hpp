@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/21 14:53:59 by whamoumi         ###   ########.fr       */
+/*   Updated: 2022/02/21 15:32:37 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -254,20 +254,20 @@ class server
 						bzero(buf, 1024);
 						if (recv(event_fd, buf, 1024, 0) < 0)
 							perror("recv error");
-						//std::cout << "USERS : " << users[event_fd]->nickname << std::endl;
-						//std::cout << "USERS LENGTH : " << users[event_fd]->nickname.length() << std::endl;
 						std::cout << "BUFFER : " << buf << std::endl;
 						char **params = ft_split(ft_substr(buf, 0, ft_strlen(buf) - 2), ' ');
 						if (strcmp(params[0], "OPER") == 0)
-						{
 							ope_command(params); //ajouter la dimension channel de wanis
-						}
 						else if (strcmp(params[0], "PRIVMSG") == 0)
 							msg_command(params);
 						else if (strncmp("JOIN ", buf, 5) == 0)
+						{
 							join_command(ft_substr(buf, 0, ft_strlen(buf) - 2), event_fd);
+						}
 						else if (strcmp(params[0], "PART") == 0)
-								part_command(params);
+						{
+							part_command(params);
+						}
 					}
 				}				
 			}
@@ -307,6 +307,13 @@ class server
 						std::cout << a;
 						if (send(*it2, welcome, ft_strlen(welcome), 0) < 0)
 							perror("send error");
+					}
+					it2 = it->second.begin();
+					ite2 = it->second.end();
+					for(; it2 != ite2; it2++)
+					{
+						if(*it2 == event_fd)
+							it->second.erase(it2);
 					}
 				}
 			}	
@@ -674,10 +681,25 @@ class server
 			}
 			return 1;
 		}
+		int	add_operator(int user, char *channel_split)
+		{
+			std::string oper = ":";
+			oper = oper + "localhost 353 " + users[user]->nickname + " = " + channel_split + " :@" + users[user]->nickname + "\r\n";
+			std::map<t_channels *, std::vector<int> >::iterator it2 = canals.begin();
+			std::map<t_channels *, std::vector<int> >::iterator ite2 = canals.end();
+			for(; it2 != ite2; it2++)
+			{
+				if (strcmp(it2->first->name_channels, channel_split) == 0)
+					return (0);
+			}
+			send(user, oper.c_str(), oper.length(), 0);
+			return (1);
+		}
 		void	join_command(char *buffer, int user)
 		{
 
 			char **buffer_split = ft_split(buffer, ' ');
+			t_channels *canaux;
 			if (ft_strlen_tab(buffer_split) > 1 && ft_strlen_tab(buffer_split) < 4)
 			{
 
@@ -689,18 +711,24 @@ class server
 					{
 						if(good_name_channel(channel_split[i]) == 1) // si le nom du channel est juste
 						{
-							t_channels *canaux = new t_channels;
-							canaux->name_channels = channel_split[i];
-							users[user]->nbr_channel++;
-							if(buffer_split[2])
-							{	
-								char **password_buffer = ft_split(buffer_split[2], ',');
-								canaux->password_channel = password_buffer[i];
+							if (add_operator(user, channel_split[i]) == 1)
+							{
+								canaux = new t_channels;
+								canaux->name_channels = channel_split[i];
+								users[user]->nbr_channel++;
+								if(buffer_split[2])
+								{	
+									char **password_buffer = ft_split(buffer_split[2], ',');
+									canaux->password_channel = password_buffer[i];
+								}
+								fd_channels.push_back(user);
+								canals[canaux] = fd_channels;
 							}
-							fd_channels.push_back(user);
-							canals[canaux] = fd_channels;
+							std::cout << "33333333333333333333333\n";
 							std::vector<int>::iterator it2 = fd_channels.begin();
 							std::vector<int>::iterator ite2 = fd_channels.end();
+							std::cout << "ite2 " << *ite2 << std::endl;
+							std::cout << "44444444444444444444444\n";
 							for(; it2 != ite2; it2++)
 							{
 								char *welcome = NULL;
