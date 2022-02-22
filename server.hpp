@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/22 14:49:19 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/22 15:24:42 by whamoumi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -272,6 +272,74 @@ class server
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		void topic_command(char **str)
+		{
+			if (ft_strlen_tab(str) >= 2)
+			{
+				if (ft_strlen_tab(str) == 2)
+				{
+					std::cout << "hola\n";
+					std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
+					std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
+					for(;it != ite; it++)
+					{
+						if (strcmp(it->first->name_channels, str[1]) == 0)
+						{
+							std::cout << "hola2\n";
+							std::string error_topic = ":localhost 332 ";
+							std::string	name = users[event_fd]->nickname;
+							std::string c = error_topic + name + " " + str[1] + " " + it->first->topic +"\r\n";
+							send(event_fd, c.c_str(), c.length(), 0);
+							break ;
+						}
+					}
+					if(it == ite)
+					{
+						std::string error_topic = ":localhost 403 ";
+						std::string	name = users[event_fd]->nickname;
+						std::string c = error_topic + name + " " + str[1] + " :No such channel\r\n";
+						send(event_fd, c.c_str(), c.length(), 0);
+					}
+				}
+				else
+				{
+					std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
+					std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
+					for(;it != ite; it++)
+					{
+						if (strcmp(it->first->name_channels, str[1]) == 0)
+						{
+							int i = 2;
+							std::string new_topic;
+							for (;str[i] ;i++)
+							{
+								if(str[i + 1])
+									new_topic = new_topic + str[i] + " ";
+								else
+									new_topic = new_topic + str[i];
+							}
+							it->first->topic = new_topic;
+							std::string c = ":" + users[event_fd]->nickname + "!" + users[event_fd]->username +" TOPIC " + str[1] + " " + new_topic + "\r\n";
+							send(event_fd, c.c_str(), c.length(), 0);
+						}
+					}
+					if(it == ite)
+					{
+						std::string error_topic = ":localhost 403 ";
+						std::string	name = users[event_fd]->nickname;
+						std::string c = error_topic + name + " " + str[1] + " :No such channel\r\n";
+						send(event_fd, c.c_str(), c.length(), 0);
+					}
+				}
+			}
+			else
+			{
+				std::string error_topic = ":localhost 461 ";
+				std::string	name = users[event_fd]->nickname;
+				std::string c = error_topic + name + " TOPIC Not enough parameters.\r\n";
+				send(event_fd, c.c_str(), c.length(), 0);
+			}
 		}
 		void 	moins_o_command(char **str)
 		{
@@ -950,8 +1018,6 @@ class server
 									char **password_buffer = ft_split(buffer_split[2], ',');
 									canaux->password_channel = password_buffer[i];
 								}
-								canaux->ope.push_back(user);
-								canals[canaux].push_back(user);
 							}
 							else
 							{								
@@ -963,10 +1029,9 @@ class server
 									char **password_buffer = ft_split(buffer_split[2], ',');
 									canaux->password_channel = password_buffer[i];
 								}
-								canals[canaux].push_back(user);
-
 							}
-
+							canaux->topic = "";
+							canals[canaux].push_back(user);
 							std::map<t_channels *, std::vector<int> >::iterator it2 = canals.begin();
 							std::map<t_channels *, std::vector<int> >::iterator ite2 = canals.end();
 							for(; it2 != ite2; it2++)
@@ -988,17 +1053,18 @@ class server
 											perror("send error");
 									}	
 								}
-							}		
-							char *welcome = NULL;
-							std::string a = ":localhost 332 ";
-							std::string b = users[user]->nickname;
-							a = a + b + " " + canaux->name_channels+ " " + ":VOICI LE TOPIC DE CE CHANNEL\r\n";
-							welcome = &a[0];
-							welcome[a.length()] = '\0';
-							if (send(event_fd, welcome, ft_strlen(welcome), 0) < 0)
-								perror("send error");
-
-							std::map<t_channels *, std::vector<int> >::iterator it6 = canals.begin();
+							}
+							if (canaux->topic != "")
+							{		
+								char *welcome = NULL;
+								std::string a = ":localhost 332 ";
+								std::string b = users[user]->nickname;
+								a = a + b + " " + canaux->name_channels+ " " + ":" + canaux->topic +"\r\n";
+								welcome = &a[0];
+								welcome[a.length()] = '\0';
+								if (send(event_fd, welcome, ft_strlen(welcome), 0) < 0)
+									perror("send error");
+							}							std::map<t_channels *, std::vector<int> >::iterator it6 = canals.begin();
 							std::map<t_channels *, std::vector<int> >::iterator ite6 = canals.end();
 							for(; it6 != ite6; it6++)
 							{
@@ -1110,6 +1176,7 @@ class server
 			std::vector<int>	ope;
 			bool	fill;
 			size_t	ch_nbr_max;
+			std::string topic;
 		}		t_channels;
 		int					socketfd;
 		char*				password;
