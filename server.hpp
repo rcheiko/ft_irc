@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/21 16:55:06 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/22 12:06:59 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,7 +78,7 @@ class server
 				i++;
 			}
 			tab[i] = '\0';
-						{	}
+			{	}
 			return (tab);
 		}
 
@@ -102,7 +102,7 @@ class server
 				{
 					tab[i_tab] = tab_malloc(s + i, c);
 					i_tab++;
-						{	}
+					{	}
 					while (s[i] && s[i] != c)
 						i++;
 				}
@@ -256,25 +256,80 @@ class server
 							perror("recv error");
 						std::cout << "BUFFER : " << buf << std::endl;
 						char **params = ft_split(ft_substr(buf, 0, ft_strlen(buf) - 2), ' ');
+						kick_command(params);
 						if (strcmp(params[0], "OPER") == 0)
 							ope_command(params); //ajouter la dimension channel de wanis
 						else if (strcmp(params[0], "PRIVMSG") == 0)
 							msg_command(params);
 						else if (strncmp("JOIN ", buf, 5) == 0)
-						{
 							join_command(ft_substr(buf, 0, ft_strlen(buf) - 2), event_fd);
-						}
 						else if (strcmp(params[0], "PART") == 0)
-						{
 							part_command(params);
-						}
 					}
 				}				
 			}
 			close(socketfd);
 			closeAllFd();
 		}
-		void part_command(char **str)
+		void	kick_command(char **str)
+		{
+			if (strcmp(str[0], "KICK") == 0)
+			{
+				std::map<t_channels *, std::vector<int> >::iterator it6 = canals.begin();
+				std::map<t_channels *, std::vector<int> >::iterator ite6 = canals.end();
+				for(; it6 != ite6; it6++)
+				{
+					std::vector<int>::iterator it8 = it6->first->ope.begin();
+					std::vector<int>::iterator ite8 = it6->first->ope.end();
+					if (strcmp(it6->first->name_channels, str[1]) == 0)
+					{
+						for(; it8 != ite8 ; it8++)
+						{
+							if(*it8 == event_fd)
+							{
+								std::map<int, Node* >::iterator save;
+								std::map<int, Node* >::iterator it3 = users.begin();
+								std::map<int, Node* >::iterator ite3 = users.end();
+								for(;it3 != ite3; it3++)
+								{
+									if (strcmp(it3->second->nickname.c_str(), str[2]) == 0)
+									{
+										save = it3;
+										break;
+									}
+								}
+								std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
+								std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
+								for(;it != ite; it++)
+								{
+									if (strcmp(it->first->name_channels, str[1]) == 0)
+									{
+										std::vector<int>::iterator it2 = it->second.begin();
+										std::vector<int>::iterator ite2 = it->second.end();
+										for(;it2 != ite2; it2++)
+										{
+											std::string kick_send = ":" + users[event_fd]->nickname + "!" + users[event_fd]->username + "@localhost KICK " + str[1] + " " + str[2] + " :";
+											for (int i = 2; str[i] ;i++)
+											{
+												if (str[i] != NULL && str[i + 1] != NULL)
+													kick_send = kick_send + str[i] + " ";
+												else
+													kick_send = kick_send + str[i];
+											}
+											kick_send = kick_send + "\r\n";
+											send(*it2, kick_send.c_str(), kick_send.length(), 0);
+											if (*it2 == save->first)
+												it->second.erase(it2);
+										}
+									}
+								}			
+							}
+						}
+					}
+				}
+			}
+		}
+		void	part_command(char **str)
 		{
 			std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
 			std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
@@ -703,7 +758,6 @@ class server
 				if (strcmp(it2->first->name_channels, channel_split) == 0)
 					return (0);
 			}
-			users[user]->ope = true;
 			send(user, oper.c_str(), oper.length(), 0);
 			return (1);
 		}
@@ -733,6 +787,7 @@ class server
 									char **password_buffer = ft_split(buffer_split[2], ',');
 									canaux->password_channel = password_buffer[i];
 								}
+								canaux->ope.push_back(user);
 								canals[canaux].push_back(user);
 							}
 							else
@@ -792,10 +847,16 @@ class server
 									c = c + d + " = " + canaux->name_channels + " :";
 									std::vector<int>::iterator it7 = it6->second.begin();
 									std::vector<int>::iterator ite7 = it6->second.end();
+
+									std::vector<int>::iterator it8 = it6->first->ope.begin();
+									std::vector<int>::iterator ite8 = it6->first->ope.end();
 									for (; it7 != ite7 ; it7++)
 									{
-										if (users[*it7]->ope == true)
-											c = c + " @";
+										for(; it8 != ite8 ; it8++)
+										{
+											if(*it8 == *it7)
+												c = c + " @";
+										}
 										c = c + users[*it7]->nickname + " ";
 									}
 									c = c + "\r\n";
@@ -883,7 +944,7 @@ class server
 			char *password_channel;
 			int number_of_members;
 			static unsigned int actif_members;
-			bool	ope;
+			std::vector<int>	ope;
 			bool	fill;
 		}		t_channels;
 		int					socketfd;
