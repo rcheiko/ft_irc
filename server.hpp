@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/22 12:06:59 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/22 12:16:37 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -265,11 +265,148 @@ class server
 							join_command(ft_substr(buf, 0, ft_strlen(buf) - 2), event_fd);
 						else if (strcmp(params[0], "PART") == 0)
 							part_command(params);
+						else if (strcmp(params[0], "MODE") == 0)
+							mode_command(params);
 					}
 				}				
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		void 	moins_o_command(char **str)
+		{
+			std::map<int, Node*>::iterator save;
+			if (users[event_fd]->ope == true)
+			{
+			//send commande ope :<nickname>!<username>@localhost MODE #<channel> +o :<nickname>
+				std::map<int, Node*>::iterator itt = users.begin();
+				std::map<int, Node*>::iterator itte = users.end();
+				for(; itt != itte; itt++)
+				{
+					char *tmp = &itt->second->nickname[0]; 
+					if(strcmp(str[3], tmp) == 0)
+					{
+						save = 	itt;
+						break;
+					}
+				}
+				std::string oper = ":";
+				std::string a = users[event_fd]->nickname;
+				std::string b = users[event_fd]->username;
+				std::map<t_channels *, std::vector<int> >::iterator it2 = canals.begin();
+				std::map<t_channels *, std::vector<int> >::iterator ite2 = canals.end();
+				for(; it2 != ite2; it2++)
+				{
+					if (strcmp(it2->first->name_channels, str[1]) == 0)
+					{
+						std::vector<int>::iterator it = it2->second.begin();
+						std::vector<int>::iterator ite = it2->second.end();
+						oper = oper + a + "!" + b + "localhost " + "MODE " + it2->first->name_channels + " -o " + ":" + users[save->first]->nickname + "\r\n";
+						for(; it != ite; it++)
+						{
+							send(*it, oper.c_str(), oper.length(), 0);
+						}
+						users[save->first]->ope = false;
+					}								
+				}
+			}
+		}
+		void	plus_o_command(char **str)
+		{
+			std::map<int, Node*>::iterator save;
+			if (users[event_fd]->ope == true)
+			{
+				//send commande ope :<nickname>!<username>@localhost MODE #<channel> +o :<nickname>
+				std::map<int, Node*>::iterator itt = users.begin();
+				std::map<int, Node*>::iterator itte = users.end();
+				for(; itt != itte; itt++)
+				{
+					char *tmp = &itt->second->nickname[0]; 
+					if(strcmp(str[3], tmp) == 0)
+					{
+						save = 	itt;
+						break;
+					}
+				}
+				std::string oper = ":";
+				std::string a = users[event_fd]->nickname;
+				std::string b = users[event_fd]->username;
+				std::map<t_channels *, std::vector<int> >::iterator it2 = canals.begin();
+				std::map<t_channels *, std::vector<int> >::iterator ite2 = canals.end();
+				for(; it2 != ite2; it2++)
+				{
+					if (strcmp(it2->first->name_channels, str[1]) == 0)
+					{
+						std::vector<int>::iterator it = it2->second.begin();
+						std::vector<int>::iterator ite = it2->second.end();
+						oper = oper + a + "!" + b + "localhost " + "MODE " + it2->first->name_channels + " +o " + ":" + users[save->first]->nickname + "\r\n";
+						for(; it != ite; it++)
+						{
+							send(*it, oper.c_str(), oper.length(), 0);
+						}
+					}								
+				}				
+			}			
+		}
+		void	plus_l_command(char **str)
+		{	
+			std::map<t_channels *, std::vector<int> >::iterator it = canals.begin();
+			std::map<t_channels *, std::vector<int> >::iterator ite = canals.end();
+			for (; it != ite; it++)
+			{
+				if (strcmp(it->first->name_channels, str[1]) == 0)
+				{
+					std::vector<int>::iterator it2 = it->first->ope.begin();
+					std::vector<int>::iterator ite2 = it->first->ope.end();
+					for (; it2 != ite2; it2++)
+					{
+						if (*it2 == event_fd)
+							it->first->ch_nbr_max = std::atoi(str[3]);
+					}
+				}
+			}
+		}
+		void	moins_l_command(char **str)
+		{	
+			std::map<t_channels *, std::vector<int> >::iterator it = canals.begin();
+			std::map<t_channels *, std::vector<int> >::iterator ite = canals.end();
+			for (; it != ite; it++)
+			{
+				if (strcmp(it->first->name_channels, str[1]) == 0)
+				{
+					std::vector<int>::iterator it2 = it->first->ope.begin();
+					std::vector<int>::iterator ite2 = it->first->ope.end();
+					for (; it2 != ite2; it2++)
+					{
+						if (*it2 == event_fd)
+							it->first->ch_nbr_max = 0;
+					}
+				}
+			}
+		}
+		void mode_command(char **str)
+		{
+			if (ft_strlen_tab(str) > 3)
+			{
+				if (str[2][0] == '+')
+				{
+					if (is_in(str[2], 'o'))
+						plus_o_command(str);	
+					if (is_in(str[2], 'l'))
+						plus_l_command(str);
+				}
+				else if (str[2][0] == '-')
+				{
+					if (is_in(str[2], 'o'))
+						moins_o_command(str);		
+					if (is_in(str[2], 'l'))
+						moins_l_command(str);
+				}
+			}
+			else
+			{
+				//error cases	
+			}
 		}
 		void	kick_command(char **str)
 		{
@@ -362,12 +499,20 @@ class server
 						if (send(*it2, welcome, ft_strlen(welcome), 0) < 0)
 							perror("send error");
 					}
-					it2 = it->second.begin();
-					ite2 = it->second.end();
-					for(; it2 != ite2; it2++)
+					if (it->second.size() == 1)
 					{
-						if(*it2 == event_fd)
-							it->second.erase(it2);
+						canals.erase(it);
+						break;
+					}
+					else if (it->second.size() > 1)
+					{
+						it2 = it->second.begin();
+						ite2 = it->second.end();
+						for(; it2 != ite2; it2++)
+						{
+							if(*it2 == event_fd)
+								it->second.erase(it2);
+						}
 					}
 				}
 			}
@@ -946,6 +1091,7 @@ class server
 			static unsigned int actif_members;
 			std::vector<int>	ope;
 			bool	fill;
+			size_t	ch_nbr_max;
 		}		t_channels;
 		int					socketfd;
 		char*				password;
