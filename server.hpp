@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/22 15:24:42 by whamoumi         ###   ########.fr       */
+/*   Updated: 2022/02/22 17:33:37 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@
 # include <arpa/inet.h>
 # include <fcntl.h>
 # include <vector>
-
+# include <stdio.h>
 
 class server
 {
@@ -36,9 +36,75 @@ class server
 	public:
 		server(void): ope_password("987"){
 			fillBool();
-			fillPassword();		
+			fillPassword();
 		}
 		~server(){}
+
+		int	size_int(int a)
+		{
+			int res;
+
+			res = 0;
+			if (a < 0)
+				res++;
+			if (a == -0)
+				return (1);
+			while (a)
+			{
+				a /= 10;
+				res++;
+			}
+			return (res);
+		}
+
+		char	*ft_rev(char *str)
+		{
+			size_t	i;
+			size_t	n;
+			char	temp;
+	
+			n = ft_strlen(str);
+			i = 0;
+			while (n > i)
+			{
+				n--;
+				temp = str[n];
+				str[n] = str[i];
+				str[i] = temp;
+				i++;
+			}
+			return (str);
+		}
+
+		char		*ft_itoa(int n)
+		{
+			char		*re;
+			int			i;
+			int			signe;
+			long int	nb;
+
+			i = 0;
+			nb = n;
+			re = new char;
+			if (!(re))
+				return (NULL);
+			if ((signe = 0) != nb == 0)
+				re[i++] = '0';
+			if (nb < 0)
+			{
+				nb = -nb;
+				signe = -1;
+			}
+			while (nb > 0)
+			{
+				re[i++] = (nb % 10) + '0';
+				nb = nb / 10;
+			}
+			if (signe == -1)
+				re[i++] = '-';
+			re[i] = '\0';
+			return (ft_rev(re));
+		}
 
 		int		count_word(char *str, char c)
 		{
@@ -224,7 +290,7 @@ class server
 					{
 						Node *node = new Node;
 						node->ope = false;
-						node->nbr_channel = 0;			
+						node->nbr_channel = 0;
 						node->username = "";
 						node->nickname = "";
 						users[event_fd] = node;
@@ -241,9 +307,7 @@ class server
 						con = init_accept();
 						EV_SET(change_event, con, EVFILT_READ, EV_ADD, 0, 0, NULL);
 						if (kevent(kq, change_event, 1, NULL, 0, NULL) < 0)
-						{
 							perror("kevent error");
-						}
 					}
 					else if (event[i].filter & EVFILT_READ)
 					{
@@ -257,21 +321,77 @@ class server
 						std::cout << "BUFFER : " << buf << std::endl;
 						char **params = ft_split(ft_substr(buf, 0, ft_strlen(buf) - 2), ' ');
 						kick_command(params);
+						list_command(params);
 						if (strcmp(params[0], "OPER") == 0)
 							ope_command(params); //ajouter la dimension channel de wanis
 						else if (strcmp(params[0], "PRIVMSG") == 0)
 							msg_command(params);
+						else if (strcmp(params[0], "TOPIC") == 0)
+							topic_command(params);
 						else if (strncmp("JOIN ", buf, 5) == 0)
 							join_command(ft_substr(buf, 0, ft_strlen(buf) - 2), event_fd);
 						else if (strcmp(params[0], "PART") == 0)
 							part_command(params);
 						else if (strcmp(params[0], "MODE") == 0)
 							mode_command(params);
+						else if (strcmp(params[0], "NAMES") == 0)
+							names_command(params);
 					}
 				}				
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		void names_command(char **str)
+		{
+			char **channel_split = ft_split(str[1] , ',');
+			int i = 0;
+			std::string message, messagee;
+			while (channel_split[i])
+			{
+				std::cout << channel_split[i] << std::endl;
+				std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
+				std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
+				for(; it != ite; it++)
+				{
+					std::cout << "1\n";
+					if (strcmp(channel_split[i], it->first->name_channels) == 0)
+					{
+						std::vector<int>::iterator it2 = it->second.begin();
+						std::vector<int>::iterator ite2 = it->second.end();
+						for(;it2 != ite2; it2++){
+							message = ":localhost 353 " + users[event_fd]->nickname + " = " + it->first->name_channels + " :";
+							message = message + users[*it2]->nickname + " ";
+						}
+						message = message + "\r\n";
+						send(event_fd, message.c_str(), message.length(), 0);
+						messagee = ":localhost 366 " + users[event_fd]->nickname + " " + it->first->name_channels + " " + ":End of NAMES list\r\n";
+						send(event_fd, messagee.c_str(), messagee.length(), 0);
+					}
+				}
+				i++;
+			}
+		}
+		void	list_command(char **str)
+		{
+			if (strcmp(str[0], "LIST") == 0)
+			{
+				std::string first_list = ":localhost 321 " + users[event_fd]->nickname + " Channel :Users Name" + "\r\n";
+				send(event_fd, first_list.c_str(), first_list.length(), 0);
+				std::map<t_channels *, std::vector<int> >::iterator it = canals.begin();
+				std::map<t_channels *, std::vector<int> >::iterator ite = canals.end();
+				for(; it != ite; it++)
+				{
+					if (strcmp(it->first->name_channels, str[1]) == 0)
+					{
+						char *topic = &it->first->topic[0];
+						std::string second_list = ":localhost 322 " + users[event_fd]->nickname + " " + str[1] + " " + ft_itoa(it->first->number_of_members) + " :" + ft_substr(topic, 1, ft_strlen(topic)) + "\r\n";
+						send(event_fd, second_list.c_str(), second_list.length(), 0);
+					}
+				}
+				std::string third_list = ":localhost 322 " + users[event_fd]->nickname + " :End of channel list." + "\r\n";
+				send(event_fd, third_list.c_str(), third_list.length(), 0);
+			}
 		}
 		void topic_command(char **str)
 		{
@@ -279,14 +399,12 @@ class server
 			{
 				if (ft_strlen_tab(str) == 2)
 				{
-					std::cout << "hola\n";
 					std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
 					std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
 					for(;it != ite; it++)
 					{
 						if (strcmp(it->first->name_channels, str[1]) == 0)
 						{
-							std::cout << "hola2\n";
 							std::string error_topic = ":localhost 332 ";
 							std::string	name = users[event_fd]->nickname;
 							std::string c = error_topic + name + " " + str[1] + " " + it->first->topic +"\r\n";
@@ -321,7 +439,12 @@ class server
 							}
 							it->first->topic = new_topic;
 							std::string c = ":" + users[event_fd]->nickname + "!" + users[event_fd]->username +" TOPIC " + str[1] + " " + new_topic + "\r\n";
-							send(event_fd, c.c_str(), c.length(), 0);
+							std::vector<int>::iterator it2 = it->second.begin();
+							std::vector<int>::iterator ite2 = it->second.end();
+							for(; it2 != ite2; it2++)
+							{
+								send(*it2, c.c_str(), c.length(), 0);
+							}
 						}
 					}
 					if(it == ite)
@@ -372,10 +495,8 @@ class server
 						std::vector<int>::iterator it = it2->second.begin();
 						std::vector<int>::iterator ite = it2->second.end();
 						oper = oper + a + "!" + b + "localhost " + "MODE " + it2->first->name_channels + " -o " + ":" + users[save->first]->nickname + "\r\n";
-						std::cout << "OPER =" << oper << "\n";
 						for(; it != ite; it++)
 						{
-							std::cout << "USERS = " << *it << "\n";
 							send(*it, oper.c_str(), oper.length(), 0);
 						}
 						it2->first->ope.erase(len + (is - 1));
@@ -433,10 +554,8 @@ class server
 						std::vector<int>::iterator it = it2->second.begin();
 						std::vector<int>::iterator ite = it2->second.end();
 						oper = oper + a + "!" + b + "localhost " + "MODE " + it2->first->name_channels + " +o " + ":" + users[save->first]->nickname + "\r\n";
-						std::cout << "OPER =" << oper << "\n";
 						for(; it != ite; it++)
 						{
-							std::cout << "USERS = " << *it << "\n";
 							send(*it, oper.c_str(), oper.length(), 0);
 						}
 						it2->first->ope.push_back(save->first);
@@ -707,7 +826,6 @@ class server
 				{
 					if (recv(event_fd, buf, 1024, 0) < 0)
 						perror("recv error");
-					std::cout << "BUFFER : " << buf << std::endl;
 					if (strcmp(buf, "") != 0)
 					{
 						strcat(res, buf);
@@ -994,23 +1112,22 @@ class server
 		}
 		void	join_command(char *buffer, int user)
 		{
-
 			char **buffer_split = ft_split(buffer, ' ');
 			t_channels *canaux;
 			if (ft_strlen_tab(buffer_split) > 1 && ft_strlen_tab(buffer_split) < 4)
 			{
-
 				if (users[user]->nbr_channel < 1000) 
 				{
 					char **channel_split = ft_split(buffer_split[1], ',');
 					int i = -1;
-					while (channel_split[++i]) 					
+					while (channel_split[++i]) 
 					{
 						if(good_name_channel(channel_split[i]) == 1) // si le nom du channel est juste
 						{
 							if (add_operator(user, channel_split[i]) == 1)
 							{
 								canaux = new t_channels;
+								canaux->number_of_members = 0;
 								canaux->name_channels = channel_split[i];
 								users[user]->nbr_channel++;
 								if(buffer_split[2])
@@ -1018,19 +1135,21 @@ class server
 									char **password_buffer = ft_split(buffer_split[2], ',');
 									canaux->password_channel = password_buffer[i];
 								}
+								canaux->ope.push_back(event_fd);
 							}
 							else
-							{								
+							{
 								canaux = new t_channels;
 								canaux->name_channels = channel_split[i];
 								users[user]->nbr_channel++;
 								if(buffer_split[2])
-								{	
+								{
 									char **password_buffer = ft_split(buffer_split[2], ',');
 									canaux->password_channel = password_buffer[i];
 								}
 							}
 							canaux->topic = "";
+							canaux->number_of_members++;
 							canals[canaux].push_back(user);
 							std::map<t_channels *, std::vector<int> >::iterator it2 = canals.begin();
 							std::map<t_channels *, std::vector<int> >::iterator ite2 = canals.end();
@@ -1089,7 +1208,7 @@ class server
 										c = c + users[*it7]->nickname + " ";
 									}
 									c = c + "\r\n";
-									std::cout << c ;
+									std::cout << "C : " << c << std::endl;
 									welcomee = &c[0];
 									welcomee[c.length()] = '\0';
 									if (send(event_fd, welcomee, ft_strlen(welcomee), 0) < 0)
