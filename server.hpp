@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/22 12:16:37 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/22 12:19:25 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -175,14 +175,14 @@ class server
 			}
 			free(str);
 		}
-		int is_in(char *str)
+		int is_in(char *str, char c)
 		{
 			int i = 0;
 			if (str)
 			{
 				while (str[i])
 				{
-					if (str[i] == ',')
+					if (str[i] == c)
 						return (1);
 					i++;
 				}
