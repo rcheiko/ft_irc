@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/23 16:32:52 by whamoumi         ###   ########.fr       */
+/*   Updated: 2022/02/23 16:33:56 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -829,7 +829,6 @@ class server
 						char *topic = &it->first->topic[0];
 						std::string second_list = ":localhost 322 " + users[event_fd]->nickname + " " + str[1] + " " + ft_itoa(it->first->number_of_members) + " :" + ft_substr(topic, 1, ft_strlen(topic)) + "\r\n";
 						send(event_fd, second_list.c_str(), second_list.length(), 0);
-						break ;
 					}
 				}
 				std::string third_list = ":localhost 322 " + users[event_fd]->nickname + " :End of channel list." + "\r\n";
