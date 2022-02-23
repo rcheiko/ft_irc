@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/23 13:57:35 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/23 14:02:28 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -995,12 +995,14 @@ class server
 		}
 		void	part_command(char **str)
 		{
+			int	checkChannel = 0;
 			std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
 			std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
 			for(;it != ite; it++)
 			{
 				if (strcmp(it->first->name_channels, str[1]) == 0)
 				{
+					checkChannel = 1;
 					std::vector<int>::iterator it2 = it->second.begin();
 					std::vector<int>::iterator ite2 = it->second.end();
 					for (; it2 != ite2; it2++)
@@ -1042,6 +1044,15 @@ class server
 						}
 					}
 				}
+			}
+			if (checkChannel != 1)
+			{
+				std::string erreur_notchannel = "442 ";
+				erreur_notchannel += str[1];
+				erreur_notchannel += " :You're not on that channel!\r\n";
+				if (send(event_fd, erreur_notchannel.c_str(), erreur_notchannel.length(), 0) < 0)
+					perror("send error");
+				return ;
 			}
 		}
 		void msg_command(char **str)
