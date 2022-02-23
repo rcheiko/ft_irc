@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/23 14:02:28 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/23 15:31:35 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -829,6 +829,7 @@ class server
 						char *topic = &it->first->topic[0];
 						std::string second_list = ":localhost 322 " + users[event_fd]->nickname + " " + str[1] + " " + ft_itoa(it->first->number_of_members) + " :" + ft_substr(topic, 1, ft_strlen(topic)) + "\r\n";
 						send(event_fd, second_list.c_str(), second_list.length(), 0);
+						break ;
 					}
 				}
 				std::string third_list = ":localhost 322 " + users[event_fd]->nickname + " :End of channel list." + "\r\n";
@@ -1270,9 +1271,9 @@ class server
 				std::cout << user << std::endl;
 				if (strcmp(user, str) == 0)
 				{
-					char error_nickname[] = "433 rcheiko : Nickname is already in use.\r\n";
+					std::string error_nickname = "433 " + users[event_fd]->nickname + " : Nickname is already in use.\r\n";
 					char error_msg[] = "Nickname is already in use\r\n";
-					if (send(event_fd, error_nickname, ft_strlen(error_nickname), 0) < 0)
+					if (send(event_fd, error_nickname.c_str(), error_nickname.length(), 0) < 0)
 						perror("send error");
 					if (send(event_fd, error_msg, ft_strlen(error_msg), 0) < 0)
 						perror("send error");
@@ -1488,6 +1489,7 @@ class server
 							std::map<t_channels *, std::vector<int> >::iterator ite2 = canals.end();
 							for(; it2 != ite2; it2++)
 							{
+								std::cout << it2->first->name_channels << "|||||\n";
 								if (strcmp(it2->first->name_channels, canaux->name_channels) == 0)
 								{
 									std::vector<int>::iterator it3 = it2->second.begin();
