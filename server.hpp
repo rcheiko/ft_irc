@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/23 16:44:29 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/23 17:19:39 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -344,7 +344,12 @@ class server
 						else if (strcmp(params[0], "PART") == 0)
 							part_command(params);
 						else if (strcmp(params[0], "MODE") == 0)
-							mode_command(params);
+						{
+							if (strcmp(params[1], users[event_fd]->nickname.c_str()) == 0)
+								;
+							else
+								mode_command(params);
+						}
 						else if (strcmp(params[0], "NAMES") == 0)
 							names_command(params);
 						else if (strcmp(params[0], "INVITE") == 0)
@@ -752,38 +757,47 @@ class server
 		{
 			if (ft_strlen_tab(str) > 2)
 			{
-				if (str[2][0] == '+')
+				if (is_in_chan(str[1]))
 				{
-					if (is_in(str[2], 'o'))
-						plus_o_command(str);	
-					if (is_in(str[2], 'l'))
-						plus_l_command(str);
-					if (is_in(str[2], 's'))
-						plus_s_command(str);
-					if (is_in(str[2], 'p'))
-						plus_p_command(str);
-					if (is_in(str[2], 'i'))
-						plus_i_command(str);
+					if (str[2][0] == '+')
+					{
+						if (is_in(str[2], 'o'))
+							plus_o_command(str);	
+						if (is_in(str[2], 'l'))
+							plus_l_command(str);
+						if (is_in(str[2], 's'))
+							plus_s_command(str);
+						if (is_in(str[2], 'p'))
+							plus_p_command(str);
+						if (is_in(str[2], 'i'))
+							plus_i_command(str);
+					}
+					else if (str[2][0] == '-')
+					{
+						if (is_in(str[2], 'o'))
+							moins_o_command(str);		
+						if (is_in(str[2], 'l'))
+							moins_l_command(str);
+						if (is_in(str[2], 's'))
+							moins_s_command(str);
+						if (is_in(str[2], 'p'))
+							moins_p_command(str);
+						if (is_in(str[2], 'i'))
+							moins_i_command(str);
+					}
 				}
-				else if (str[2][0] == '-')
+				else
 				{
-					if (is_in(str[2], 'o'))
-						moins_o_command(str);		
-					if (is_in(str[2], 'l'))
-						moins_l_command(str);
-					if (is_in(str[2], 's'))
-						moins_s_command(str);
-					if (is_in(str[2], 'p'))
-						moins_p_command(str);
-					if (is_in(str[2], 'i'))
-						moins_i_command(str);
+					char *welcome = NULL;
+					std::string a;
+					std::string c = "403";
+					std::string d = " :No such channel";
+					a = c + d + "\r\n";
+					welcome = &a[0];
+					send(event_fd, welcome, ft_strlen(welcome), 0);
 				}
-			}
-			else
-			{
-				//error cases	
-			}
-		}
+			}	
+		}		
 		void names_command(char **str)
 		{
 			char **channel_split = ft_split(str[1] , ',');
@@ -1307,8 +1321,6 @@ class server
 				exit(EXIT_FAILURE);  
 			}
 			std::cout << "\t--New client connect from port no. " << ntohs(sin.sin_port) << "\n";
-			if (send(event_fd, "Please fill the following informations : \n", 41, 0) < 0)
-				perror("send error");
 			return (d);
 		}
 		void	closeAllFd()
@@ -1443,7 +1455,7 @@ class server
 			send(user, oper.c_str(), oper.length(), 0);
 			return (1);
 		}
-void	join_command(char *buffer, int user)
+		int	join_command(char *buffer, int user)
 		{
 			char **buffer_split = ft_split(buffer, ' ');
 			t_channels *canaux;
@@ -1472,6 +1484,28 @@ void	join_command(char *buffer, int user)
 								canals[canaux].push_back(user);
 							}
 							users[user]->nbr_channel++;
+							std::map<t_channels *, std::vector<int> >::iterator it0 = canals.begin();
+							std::map<t_channels *, std::vector<int> >::iterator ite0 = canals.end();
+							for (; it0 != ite0; it0++)
+							{
+								if (strcmp(it0->first->name_channels, channel_split[i]) == 0)
+								{
+									if (it0->first->mode.l)
+									{
+										if (it0->first->number_of_members >= it0->first->ch_nbr_max)
+										{
+											std::string i;
+											std::string a = ":localhost ";
+											std::string c = "471 ";
+											std::string d = " :Cannot join channe (channel is full)";
+											i = a + c + users[event_fd]->username + " " + it0->first->name_channels + " " + d + "\r\n";
+											std::cout << "I = " << i << "\n";
+											send(event_fd, i.c_str(), i.length(), 0);	
+											return (0);	
+										}
+									}
+								}
+							}
 							std::map<t_channels *, std::vector<int> >::iterator it5 = canals.begin();
 							std::map<t_channels *, std::vector<int> >::iterator ite5 = canals.end();
 							for(; it5 != ite5; it5++)
@@ -1602,6 +1636,7 @@ void	join_command(char *buffer, int user)
 				welcome = &a[0];
 				send(user, welcome, ft_strlen(welcome), 0);
 			}
+			return (0);
 		}
 	
 		private:
@@ -1634,7 +1669,7 @@ void	join_command(char *buffer, int user)
 			static unsigned int actif_members;
 			std::vector<int>	ope;
 			bool	fill;
-			size_t	ch_nbr_max;
+			int	ch_nbr_max;
 			std::string topic;
 		}		t_channels;
 		int					socketfd;
