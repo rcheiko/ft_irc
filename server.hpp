@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/23 16:33:56 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/23 16:44:29 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1455,13 +1455,12 @@ void	join_command(char *buffer, int user)
 					int i = 0;
 					while (channel_split[i])
 					{
-						std::cout << "fsdfsdf-->" <<channel_split[i];
 						if(good_name_channel(channel_split[i]) == 1) // si le nom du channel est juste
 						{
 							if (add_operator(user, channel_split[i]) == 1)
 							{
 								canaux = new t_channels;
-								canaux->number_of_members = 0;
+								canaux->number_of_members = 1;
 								canaux->topic = "";
 								canaux->name_channels = channel_split[i];
 								if(buffer_split[2])
@@ -1485,7 +1484,6 @@ void	join_command(char *buffer, int user)
 									{
 										if (*it0 != user)
 										{
-											std::cout << "JE NE SUIS PAS OPE\n";
 											it5->first->number_of_members++;
 											it5->second.push_back(user);
 										}
@@ -1496,7 +1494,6 @@ void	join_command(char *buffer, int user)
 							std::map<t_channels *, std::vector<int> >::iterator ite2 = canals.end();
 							for(; it2 != ite2; it2++)
 							{
-								std::cout << "CHANNEL -->" << it2->first->name_channels << std::endl;
 								if (strcmp(it2->first->name_channels, channel_split[i]) == 0)
 								{
 									std::vector<int>::iterator it3 = it2->second.begin();
@@ -1509,7 +1506,6 @@ void	join_command(char *buffer, int user)
 										std::string d = users[user]->username;
 										a = ":" + c + "!" + d + "@localhost JOIN " + channel_split[i] +"\r\n";
 										welcome = &a[0];
-										std::cout << "USER-->" << *it3 << std::endl;
 										send(*it3, welcome, ft_strlen(welcome), 0);
 									}
 								}
@@ -1606,7 +1602,6 @@ void	join_command(char *buffer, int user)
 				welcome = &a[0];
 				send(user, welcome, ft_strlen(welcome), 0);
 			}
-			//std::cout << " end" << std::endl;
 		}
 	
 		private:
