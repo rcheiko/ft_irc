@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/22 17:42:19 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/23 13:57:35 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,19 @@ class server
 		}
 		~server(){}
 
+		int	is_in_chan(char *str)
+		{
+			std::map<t_channels *, std::vector<int> >::iterator it = canals.begin();
+			std::map<t_channels *, std::vector<int> >::iterator ite = canals.end();	
+			for (; it != ite; it++)
+			{	
+				if (strcmp(it->first->name_channels, str) == 0)
+				{	
+					return (1);
+				}
+			}
+			return (0);
+		}
 		int	size_int(int a)
 		{
 			int res;
@@ -224,7 +237,6 @@ class server
 				i++;
 			return (i);
 		}
-
 		int ft_strlen_tab(char **str)
 		{
 			int i = 0;
@@ -278,7 +290,6 @@ class server
 				for (int i = 0; new_events > i; i++)
 				{
 					event_fd = event[i].ident;
-					//std::cout << "FD = " << event_fd << "\n";
 					std::map<int, Node*>::iterator it = users.begin();
 					std::map<int, Node*>::iterator ite = users.end();
 					for (; it != ite; it++)
@@ -336,11 +347,89 @@ class server
 							mode_command(params);
 						else if (strcmp(params[0], "NAMES") == 0)
 							names_command(params);
+						else if (strcmp(params[0], "INVITE") == 0)
+							invite_command(params);
 					}
 				}				
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		int	user_is_in_chan(const char *str, char *str2)
+		{
+			std::map<t_channels *, std::vector<int> >::iterator it = canals.begin();
+			std::map<t_channels *, std::vector<int> >::iterator ite = canals.end();	
+			for (; it != ite; it++)
+			{	
+				if (strcmp(it->first->name_channels, str2) == 0)
+				{	
+					std::vector<int>::iterator it2 = it->second.begin();
+					std::vector<int>::iterator ite2 = it->second.end();
+					for(;it2 != ite2; it2++){
+						if (strcmp(str, users[*it2]->nickname.c_str()) == 0)
+							return (1);
+					}
+				}
+			}
+			return (0);
+		}
+		int user_exist(char *str)
+		{
+			std::map<int, Node*>::iterator it = users.begin();
+			std::map<int, Node*>::iterator ite = users.end();
+			for(;it != ite; it++){
+				if(strcmp(str, users[it->first]->nickname.c_str()) == 0)
+				{	
+					return (1);
+				}
+			}
+			return 0;			
+		}
+		void	invite_command(char **str)
+		{
+			if (ft_strlen_tab(str) >= 3)
+			{
+				if(user_exist(str[1]) == 1)// si le gars existe on rentre dans le if
+				{
+					if(is_in_chan(str[2]) == 1) // si le channel existe alors on rentre dans le if
+					{
+						if (user_is_in_chan(users[event_fd]->nickname.c_str(), str[2]) == 1) // si l'utilisateur et dans le channel
+						{
+							std::string invite_message = ":localhost 341 " + users[event_fd]->nickname + " " + str[1] + " :" + str[2] + "\r\n";
+							std::cout << invite_message;
+							std::map<int, Node*>::iterator it = users.begin();
+							std::map<int, Node*>::iterator ite = users.end();
+							for(;it != ite; it++){
+								if(strcmp(str[1], users[it->first]->nickname.c_str()) == 0)
+								{	
+									send(it->first, invite_message.c_str(), invite_message.length(), 0);
+									send(event_fd, invite_message.c_str(), invite_message.length(), 0);
+								}
+							}
+						}
+						else
+						{
+							std::string erreur_notchannel = ":localhost 442 " + users[event_fd]->nickname + " " + str[2] + " :You're not on that channel!\r\n";
+							std::cout << erreur_notchannel;
+							send(event_fd, erreur_notchannel.c_str(), erreur_notchannel.length(), 0);
+							//:localhost 442 wawa #1 :You're not on that channel!
+							//:localhost 442 Wa_ #55 :You're not on that channel!
+						}
+					}
+					else
+					{
+						std::string erreur_channel = ":localhost 403 " + users[event_fd]->nickname + " " + str[2] + " :No such channel\r\n";
+						send(event_fd, erreur_channel.c_str(), erreur_channel.length(), 0);
+					}
+				}
+				else
+				{
+					std::string erreur_nick = ":localhost 401 " + users[event_fd]->nickname + " " + str[1] + " :No such nick\r\n";
+					std::cout << erreur_nick ;
+					send(event_fd, erreur_nick.c_str(), erreur_nick.length(), 0);
+				}
+			}
+
 		}
 		void 	moins_o_command(char **str)
 		{
@@ -441,7 +530,6 @@ class server
 							it2->first->mode.o = true;
 							for(; it != ite; it++)
 							{
-								std::cout << "USERS = " << *it << "\n";
 								send(*it, oper.c_str(), oper.length(), 0);
 							}
 							it2->first->ope.push_back(save->first);
@@ -820,20 +908,31 @@ class server
 		}
 		void	kick_command(char **str)
 		{
+			int checkChannel = 0;
+			int checkOpe = 0;
 			if (strcmp(str[0], "KICK") == 0)
 			{
+				if (ft_strlen_tab(str) < 2)
+				{
+					std::string no_params = "461 KICK :Not enough parameters\r\n";
+					if (send(event_fd, no_params.c_str(), no_params.length(), 0) < 0)
+						perror("send error");
+					return ;
+				}
 				std::map<t_channels *, std::vector<int> >::iterator it6 = canals.begin();
 				std::map<t_channels *, std::vector<int> >::iterator ite6 = canals.end();
 				for(; it6 != ite6; it6++)
 				{
-					std::vector<int>::iterator it8 = it6->first->ope.begin();
-					std::vector<int>::iterator ite8 = it6->first->ope.end();
 					if (strcmp(it6->first->name_channels, str[1]) == 0)
 					{
+						std::vector<int>::iterator ite8 = it6->first->ope.end();
+						std::vector<int>::iterator it8 = it6->first->ope.begin();
+						checkChannel = 1;
 						for(; it8 != ite8 ; it8++)
 						{
 							if(*it8 == event_fd)
 							{
+								checkOpe = 1;
 								std::map<int, Node* >::iterator save;
 								std::map<int, Node* >::iterator it3 = users.begin();
 								std::map<int, Node* >::iterator ite3 = users.end();
@@ -871,8 +970,26 @@ class server
 									}
 								}			
 							}
+							if (checkOpe != 1)
+							{
+								std::string erreur_ope = "482 ";
+								erreur_ope += str[1];
+								erreur_ope += " :You're not channel operator\r\n";
+								if (send(event_fd, erreur_ope.c_str(), erreur_ope.length(), 0) < 0)
+									perror("send error");
+								return ;				
+							}
 						}
 					}
+				}
+				if (checkChannel != 1)
+				{
+					std::string erreur_notchannel = "442 ";
+					erreur_notchannel += str[1];
+					erreur_notchannel += " :You're not on that channel!\r\n";
+					if (send(event_fd, erreur_notchannel.c_str(), erreur_notchannel.length(), 0) < 0)
+						perror("send error");
+					return ;
 				}
 			}
 		}
