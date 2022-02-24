@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/23 17:19:39 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/23 20:11:03 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,7 @@ class server
 		}
 		~server(){}
 
+		
 		int	is_in_chan(char *str)
 		{
 			std::map<t_channels *, std::vector<int> >::iterator it = canals.begin();
@@ -47,9 +48,7 @@ class server
 			for (; it != ite; it++)
 			{	
 				if (strcmp(it->first->name_channels, str) == 0)
-				{	
 					return (1);
-				}
 			}
 			return (0);
 		}
@@ -354,8 +353,14 @@ class server
 							names_command(params);
 						else if (strcmp(params[0], "INVITE") == 0)
 							invite_command(params);
+						int i = 0;
+						while(params[i])
+						{
+							free(params[i]);
+							i++;
+						}
 					}
-				}				
+				}
 			}
 			close(socketfd);
 			closeAllFd();
@@ -406,7 +411,12 @@ class server
 							std::map<int, Node*>::iterator ite = users.end();
 							for(;it != ite; it++){
 								if(strcmp(str[1], users[it->first]->nickname.c_str()) == 0)
-								{	
+								{
+									std::string channel = str[2];
+									users[it->first]->i.push_back(channel);
+									std::vector<std::string>::iterator it1 = it->second->i.begin();
+									std::cout << " *it1 --> " <<*it1 << std::endl;
+									//std::map<int, Node*>::iterator ite = canals.end();									
 									send(it->first, invite_message.c_str(), invite_message.length(), 0);
 									send(event_fd, invite_message.c_str(), invite_message.length(), 0);
 								}
@@ -815,13 +825,13 @@ class server
 					{
 						std::vector<int>::iterator it2 = it->second.begin();
 						std::vector<int>::iterator ite2 = it->second.end();
+						message = ":localhost 353 " + users[event_fd]->nickname + " = " + it->first->name_channels + " :";
 						for(;it2 != ite2; it2++){
-							message = ":localhost 353 " + users[event_fd]->nickname + " = " + it->first->name_channels + " :";
 							message = message + users[*it2]->nickname + " ";
 						}
 						message = message + "\r\n";
 						send(event_fd, message.c_str(), message.length(), 0);
-						messagee = ":localhost 366 " + users[event_fd]->nickname + " " + it->first->name_channels + " " + ":End of NAMES list\r\n";
+						messagee = ":localhost 366 " + users[event_fd]->nickname + " " + it->first->name_channels + " " + ":End of /NAMES list\r\n";
 						send(event_fd, messagee.c_str(), messagee.length(), 0);
 					}
 				}
@@ -840,14 +850,45 @@ class server
 				{
 					if (strcmp(it->first->name_channels, str[1]) == 0)
 					{
-						char *topic = &it->first->topic[0];
-						std::string second_list = ":localhost 322 " + users[event_fd]->nickname + " " + str[1] + " " + ft_itoa(it->first->number_of_members) + " :" + ft_substr(topic, 1, ft_strlen(topic)) + "\r\n";
-						send(event_fd, second_list.c_str(), second_list.length(), 0);
+						if (it->first->mode.p || it->first->mode.s)
+						{
+							if (user_is_in_chan(users[event_fd]->nickname.c_str(), it->first->name_channels))
+							{
+								char *topic = &it->first->topic[0];
+								std::string second_list = ":localhost 322 " + users[event_fd]->nickname + " " + str[1] + " " + ft_itoa(it->first->number_of_members) + " :" + ft_substr(topic, 1, ft_strlen(topic)) + "\r\n";
+								send(event_fd, second_list.c_str(), second_list.length(), 0);
+							}
+						}
 					}
 				}
 				std::string third_list = ":localhost 322 " + users[event_fd]->nickname + " :End of channel list." + "\r\n";
 				send(event_fd, third_list.c_str(), third_list.length(), 0);
 			}
+		}
+		int is_operateur(char *str)
+		{
+			std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
+			std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
+			for(; it != ite; it++)
+			{
+				std::cout << "CHANNEL -->" << it->first->name_channels << std::endl;
+				if (strcmp(it->first->name_channels, str) == 0)
+				{
+					std::vector<int>::iterator it2 = it->first->ope.begin();
+					std::vector<int>::iterator ite2 = it->first->ope.end();
+					for(; it2 != ite2; it2++)
+					{
+						//std::cout << "NAME -->" << users[*it2]->nickname << std::endl;
+						if (event_fd == *it2)
+						{
+							
+							std::cout << "SIZE -->" << it->first->ope.size() << std::endl;						
+							return 1;
+						}
+					}
+				}
+			}
+			return 0;		
 		}
 		void topic_command(char **str)
 		{
@@ -884,22 +925,25 @@ class server
 					{
 						if (strcmp(it->first->name_channels, str[1]) == 0)
 						{
-							int i = 2;
-							std::string new_topic;
-							for (;str[i] ;i++)
+							if(is_operateur(it->first->name_channels) == 1)
 							{
-								if(str[i + 1])
-									new_topic = new_topic + str[i] + " ";
-								else
-									new_topic = new_topic + str[i];
-							}
-							it->first->topic = new_topic;
-							std::string c = ":" + users[event_fd]->nickname + "!" + users[event_fd]->username +" TOPIC " + str[1] + " " + new_topic + "\r\n";
-							std::vector<int>::iterator it2 = it->second.begin();
-							std::vector<int>::iterator ite2 = it->second.end();
-							for(; it2 != ite2; it2++)
-							{
-								send(*it2, c.c_str(), c.length(), 0);
+								int i = 2;
+								std::string new_topic;
+								for (;str[i] ;i++)
+								{
+									if(str[i + 1])
+										new_topic = new_topic + str[i] + " ";
+									else
+										new_topic = new_topic + str[i];
+								}
+								it->first->topic = new_topic;
+								std::string c = ":" + users[event_fd]->nickname + "!" + users[event_fd]->username +" TOPIC " + str[1] + " " + new_topic + "\r\n";
+								std::vector<int>::iterator it2 = it->second.begin();
+								std::vector<int>::iterator ite2 = it->second.end();
+								for(; it2 != ite2; it2++)
+								{
+									send(*it2, c.c_str(), c.length(), 0);
+								}
 							}
 						}
 					}
@@ -1385,7 +1429,6 @@ class server
 
 		int good_name_channel(char *str)
 		{
-			std::cout << "str " <<str << std::endl;
 			int i = 0;
 			if (ft_strlen(str) > 50)
 				return 0;
@@ -1397,15 +1440,11 @@ class server
 					while (str[i])
 					{
 						if (str[i] == ' ')
-						{
-							std::cout << "oui"<< std::endl;
 							return 0;
-						}
 						i++;
 					}
 					return 1;
 				}
-				std::cout << "oui"<< std::endl;
 				return 0;
 			}
 			return 0;
@@ -1418,10 +1457,7 @@ class server
 			for (; it != ite; it++)
 			{
 				if (strcmp(it->first->name_channels, str) == 0)
-				{
-					std::cout << "ALREADY EXIST\n";
 					return 0;
-				}
 			}
 			return 1;
 		}
@@ -1461,7 +1497,7 @@ class server
 			t_channels *canaux;
 			if (ft_strlen_tab(buffer_split) > 1 && ft_strlen_tab(buffer_split) < 4)
 			{
-				if (users[user]->nbr_channel < 1000)
+				if (users[user]->nbr_channel < 3)
 				{
 					char **channel_split = ft_split(buffer_split[1], ',');
 					int i = 0;
@@ -1480,10 +1516,39 @@ class server
 									char **password_buffer = ft_split(buffer_split[2], ',');
 									canaux->password_channel = password_buffer[i];
 								}
+								std::cout << "JE SUIS OPERATEUR" << std::endl;
 								canaux->ope.push_back(user);
 								canals[canaux].push_back(user);
 							}
 							users[user]->nbr_channel++;
+							std::map<t_channels *, std::vector<int> >::iterator ip = canals.begin();
+							std::map<t_channels *, std::vector<int> >::iterator ipe = canals.end();
+							for (; ip != ipe; ip++)
+							{
+								if (strcmp(ip->first->name_channels, channel_split[i]) == 0)
+								{
+									int erreur = 0;
+									std::map<int, Node*>::iterator save = users.find(user);
+									std::vector<std::string>::iterator vec = save->second->i.begin();
+									std::vector<std::string>::iterator vec1 = save->second->i.end();
+									for (; vec != vec1; vec++)
+									{
+										std::string vec2 = *vec;
+										if (strcmp(vec2.c_str(), channel_split[i]) == 0)
+											erreur = 1;
+									}
+									if (ip->first->mode.i && erreur == 0)
+									{
+										std::string i;
+										std::string a = ":localhost ";
+										std::string c = "473 ";
+										std::string d = " :Cannot join channel (invite only)";
+										i = a + c + users[event_fd]->username + " " + ip->first->name_channels + " " + d + "\r\n";
+										send(event_fd, i.c_str(), i.length(), 0);	
+										return (0);	
+									}
+								}
+							}
 							std::map<t_channels *, std::vector<int> >::iterator it0 = canals.begin();
 							std::map<t_channels *, std::vector<int> >::iterator ite0 = canals.end();
 							for (; it0 != ite0; it0++)
@@ -1497,9 +1562,8 @@ class server
 											std::string i;
 											std::string a = ":localhost ";
 											std::string c = "471 ";
-											std::string d = " :Cannot join channe (channel is full)";
+											std::string d = " :Cannot join channel (channel is full)";
 											i = a + c + users[event_fd]->username + " " + it0->first->name_channels + " " + d + "\r\n";
-											std::cout << "I = " << i << "\n";
 											send(event_fd, i.c_str(), i.length(), 0);	
 											return (0);	
 										}
@@ -1552,13 +1616,10 @@ class server
 								{
 									if (it9->first->topic != "")
 									{
-										char *welcome = NULL;
 										std::string a = ":localhost 332 ";
 										std::string b = users[user]->nickname;
-										a = a + b + " " + channel_split[i] + " " + ":" + it2->first->topic +"\r\n";
-										welcome = &a[0];
-										welcome[a.length()] = '\0';
-										if (send(event_fd, welcome, ft_strlen(welcome), 0) < 0)
+										a = a + b + " " + channel_split[i] + " " + ":" + it9->first->topic +"\r\n";
+										if (send(event_fd, a.c_str(), a.length(), 0) < 0)
 											perror("send error");
 									}
 								}
@@ -1588,7 +1649,6 @@ class server
 										c = c + users[*it7]->nickname + " ";
 									}
 									c = c + "\r\n";
-									std::cout << "C : " << c << std::endl;
 									welcomee = &c[0];
 									if (send(user, welcomee, ft_strlen(welcomee), 0) < 0)
 										perror("send error");
@@ -1642,11 +1702,11 @@ class server
 		private:
 		struct Node
 		{
-			std::string nickname;
-			std::string username;
-			std::string channel;
-			unsigned int nbr_channel;
-			bool		ope;
+			std::string 				nickname;
+			std::string 				username;
+			std::vector<std::string> 	i;
+			unsigned int 				nbr_channel;
+			bool						ope;
 		};
 		typedef struct	s_mode{
 			bool o;
