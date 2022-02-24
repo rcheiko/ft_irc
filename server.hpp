@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/23 20:11:03 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/24 14:12:41 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -328,8 +328,11 @@ class server
 						bzero(buf, 1024);
 						if (recv(event_fd, buf, 1024, 0) < 0)
 							perror("recv error");
-						std::cout << "BUFFER : " << buf << std::endl;
-						char **params = ft_split(ft_substr(buf, 0, ft_strlen(buf) - 2), ' ');
+						char *buf2 = NULL;
+						buf2 = strdup(buf);
+						buf2 = checkRN(buf2);
+
+						char **params = ft_split(buf2, ' ');
 						kick_command(params);
 						list_command(params);
 						if (strcmp(params[0], "OPER") == 0)
@@ -338,8 +341,8 @@ class server
 							msg_command(params);
 						else if (strcmp(params[0], "TOPIC") == 0)
 							topic_command(params);
-						else if (strncmp("JOIN ", buf, 5) == 0)
-							join_command(ft_substr(buf, 0, ft_strlen(buf) - 2), event_fd);
+						else if (strncmp("JOIN ", buf2, 5) == 0)
+							join_command(buf2, event_fd);
 						else if (strcmp(params[0], "PART") == 0)
 							part_command(params);
 						else if (strcmp(params[0], "MODE") == 0)
@@ -364,6 +367,15 @@ class server
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		char	*checkRN(char *str)
+		{
+			int i = ft_strlen(str);
+			if (str[i - 1] == '\r')
+				str[i - 1] = '\0';
+			if (str[i - 2] == '\r')
+				str[i - 2] = '\0';
+			return (str);
 		}
 		int	user_is_in_chan(const char *str, char *str2)
 		{
@@ -406,7 +418,6 @@ class server
 						if (user_is_in_chan(users[event_fd]->nickname.c_str(), str[2]) == 1) // si l'utilisateur et dans le channel
 						{
 							std::string invite_message = ":localhost 341 " + users[event_fd]->nickname + " " + str[1] + " :" + str[2] + "\r\n";
-							std::cout << invite_message;
 							std::map<int, Node*>::iterator it = users.begin();
 							std::map<int, Node*>::iterator ite = users.end();
 							for(;it != ite; it++){
@@ -414,8 +425,6 @@ class server
 								{
 									std::string channel = str[2];
 									users[it->first]->i.push_back(channel);
-									std::vector<std::string>::iterator it1 = it->second->i.begin();
-									std::cout << " *it1 --> " <<*it1 << std::endl;
 									//std::map<int, Node*>::iterator ite = canals.end();									
 									send(it->first, invite_message.c_str(), invite_message.length(), 0);
 									send(event_fd, invite_message.c_str(), invite_message.length(), 0);
@@ -425,7 +434,6 @@ class server
 						else
 						{
 							std::string erreur_notchannel = ":localhost 442 " + users[event_fd]->nickname + " " + str[2] + " :You're not on that channel!\r\n";
-							std::cout << erreur_notchannel;
 							send(event_fd, erreur_notchannel.c_str(), erreur_notchannel.length(), 0);
 							//:localhost 442 wawa #1 :You're not on that channel!
 							//:localhost 442 Wa_ #55 :You're not on that channel!
@@ -440,7 +448,6 @@ class server
 				else
 				{
 					std::string erreur_nick = ":localhost 401 " + users[event_fd]->nickname + " " + str[1] + " :No such nick\r\n";
-					std::cout << erreur_nick ;
 					send(event_fd, erreur_nick.c_str(), erreur_nick.length(), 0);
 				}
 			}
@@ -815,12 +822,10 @@ class server
 			std::string message, messagee;
 			while (channel_split[i])
 			{
-				std::cout << channel_split[i] << std::endl;
 				std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
 				std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
 				for(; it != ite; it++)
 				{
-					std::cout << "1\n";
 					if (strcmp(channel_split[i], it->first->name_channels) == 0)
 					{
 						std::vector<int>::iterator it2 = it->second.begin();
@@ -850,14 +855,12 @@ class server
 				{
 					if (strcmp(it->first->name_channels, str[1]) == 0)
 					{
-						if (it->first->mode.p || it->first->mode.s)
+
+						if (user_is_in_chan(users[event_fd]->nickname.c_str(), it->first->name_channels) || (it->first->mode.p == false && it->first->mode.s == false))
 						{
-							if (user_is_in_chan(users[event_fd]->nickname.c_str(), it->first->name_channels))
-							{
-								char *topic = &it->first->topic[0];
-								std::string second_list = ":localhost 322 " + users[event_fd]->nickname + " " + str[1] + " " + ft_itoa(it->first->number_of_members) + " :" + ft_substr(topic, 1, ft_strlen(topic)) + "\r\n";
-								send(event_fd, second_list.c_str(), second_list.length(), 0);
-							}
+							char *topic = &it->first->topic[0];
+							std::string second_list = ":localhost 322 " + users[event_fd]->nickname + " " + str[1] + " " + ft_itoa(it->first->number_of_members) + " :" + ft_substr(topic, 1, ft_strlen(topic)) + "\r\n";
+							send(event_fd, second_list.c_str(), second_list.length(), 0);
 						}
 					}
 				}
@@ -871,20 +874,14 @@ class server
 			std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
 			for(; it != ite; it++)
 			{
-				std::cout << "CHANNEL -->" << it->first->name_channels << std::endl;
 				if (strcmp(it->first->name_channels, str) == 0)
 				{
 					std::vector<int>::iterator it2 = it->first->ope.begin();
 					std::vector<int>::iterator ite2 = it->first->ope.end();
 					for(; it2 != ite2; it2++)
 					{
-						//std::cout << "NAME -->" << users[*it2]->nickname << std::endl;
 						if (event_fd == *it2)
-						{
-							
-							std::cout << "SIZE -->" << it->first->ope.size() << std::endl;						
 							return 1;
-						}
 					}
 				}
 			}
@@ -1082,7 +1079,6 @@ class server
 						}
 						a = a + "\r\n";
 						welcome = &a[0];
-						std::cout << a;
 						if (send(*it2, welcome, ft_strlen(welcome), 0) < 0)
 							perror("send error");
 					}
@@ -1098,7 +1094,10 @@ class server
 						for(; it2 != ite2; it2++)
 						{
 							if(*it2 == event_fd)
+							{
 								it->second.erase(it2);
+								it->first->number_of_members--;
+							}
 						}
 					}
 				}
@@ -1204,6 +1203,7 @@ class server
 				if (send(event_fd, "461 :Not enough parameters\r\n", 40, 0) < 0)
 					perror("send error");
 		}
+
 		void	checkConnection()
 		{
 			char buf[1024];
@@ -1241,13 +1241,13 @@ class server
 				if (buf_info && buf_info[0] && buf_info[1] && buf_info[2] && buf_info[3])
 				{
 					pass = ft_substr(buf_info[1], 5, ft_strlen(buf_info[1]) - 5);
-					pass[ft_strlen(pass) - 1 ] = '\0';
+					pass = checkRN(pass);
 
 					nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
-					nick[ft_strlen(nick) - 1] = '\0';
+					nick = checkRN(nick);
 
 					user = ft_substr(buf_info[3], 5, ft_strlen(buf_info[3]) - 5);
-					user[ft_strlen(user) - 1] = '\0';
+					user = checkRN(user);
 
 					pass_error(pass);
 					nick_error(nick);
@@ -1279,7 +1279,6 @@ class server
 				std::string d = users[event_fd]->username;
 				a = a + users[event_fd]->nickname + b + c + "!" + d + "@localhost\r\n";
 				welcome = &a[0];
-				welcome[a.length()] = '\0';
 				checkPassword[event_fd - 5] = 2;
 				if (send(event_fd, welcome, ft_strlen(welcome), 0) < 0)
 					perror("send error");
@@ -1325,7 +1324,6 @@ class server
 			for (; it != ite; it++)
 			{
 				char *user = &it->second->nickname[0];
-				std::cout << user << std::endl;
 				if (strcmp(user, str) == 0)
 				{
 					std::string error_nickname = "433 " + users[event_fd]->nickname + " : Nickname is already in use.\r\n";
@@ -1516,7 +1514,6 @@ class server
 									char **password_buffer = ft_split(buffer_split[2], ',');
 									canaux->password_channel = password_buffer[i];
 								}
-								std::cout << "JE SUIS OPERATEUR" << std::endl;
 								canaux->ope.push_back(user);
 								canals[canaux].push_back(user);
 							}
