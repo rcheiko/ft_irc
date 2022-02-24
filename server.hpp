@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/24 14:12:41 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/24 14:50:46 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1203,7 +1203,22 @@ class server
 				if (send(event_fd, "461 :Not enough parameters\r\n", 40, 0) < 0)
 					perror("send error");
 		}
+		char *ft_strcat(char *dest, char *src)
+		{
+			int i;
+			int j;
 
+			i = 0;
+			while (dest[i] != '\0')
+			i++;
+			j = 0;
+			while (src[j] != '\0')
+			{
+				dest[i + j] = src[j];
+				j++;
+			}
+			return (dest);
+		}
 		void	checkConnection()
 		{
 			char buf[1024];
@@ -1215,31 +1230,47 @@ class server
 			{
 				while (1)
 				{
+					bzero(buf, 1024);
 					if (recv(event_fd, buf, 1024, 0) < 0)
 						perror("recv error");
+					std::cout << "BUFFER = " << buf << "\n";
 					if (strcmp(buf, "") != 0)
 					{
-						strcat(res, buf);
-						buf_info = ft_split(res, '\n');
-						if (ft_strlen_tab(buf_info) == 4)
-						{
-							checkPassword[event_fd - 5] = -1;
-							break;
-						}
+						if (buf[ft_strlen(buf) - 1] != '\n')
+							strcat(res, buf);
 						else
-							free_tab(buf_info);
-
+							ft_strcat(res, buf);
+						if (res[ft_strlen(res) - 1] != '\n')
+							continue;
 					}
-					bzero(buf, 1024);
+					else
+						break;
+					std::cout << "RES FINISH = " << res << "|" << "\n";
+					buf_info = ft_split(res, '\n');
+					if (ft_strlen_tab(buf_info) == 4) // a modifer
+					{
+						std::cout << "PASSWORD = " << "\n";
+						checkPassword[event_fd - 5] = -1;
+						break;
+					}
+					else
+						free_tab(buf_info);
 				}
+				std::cout << "FINISH = " << "\n";
+				bzero(buf, 1024);
+				std::cout << "FINISH 1= " << "\n";
 			}
 			char *user = NULL;
 			char *pass = NULL;
 			char *nick = NULL;
+			std::cout << "FINISH 2= " << "\n";
+			std::cout << "Event FD = " << event_fd << "\n";
 			if (checkPassword[event_fd - 5] == -1)
 			{
+				std::cout << "FINISH 3= " << "\n";
 				if (buf_info && buf_info[0] && buf_info[1] && buf_info[2] && buf_info[3])
 				{
+					std::cout << "FINISH 4= " << "\n";
 					pass = ft_substr(buf_info[1], 5, ft_strlen(buf_info[1]) - 5);
 					pass = checkRN(pass);
 
@@ -1252,21 +1283,21 @@ class server
 					pass_error(pass);
 					nick_error(nick);
 					users[event_fd]->nickname = nick;
-				}
-				if (user)
-				{
-					char **user_infos = ft_split(user, ' ');
-					if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
+					if (user)
 					{
-						//user_error(user_infos[0]);
-						users[event_fd]->username = user_infos[0];
+						std::cout << "FINISH 5= " << "\n";
+						char **user_infos = ft_split(user, ' ');
+						if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
+						{
+							//user_error(user_infos[0]);
+							users[event_fd]->username = user_infos[0];
+						}
+						else
+							if (send(event_fd, "461 : Not enough parameters\r\n", 40, 0) < 0)
+								perror("send error");
 					}
-					else
-						if (send(event_fd, "461 : Not enough parameters\r\n", 40, 0) < 0)
-							perror("send error");
 				}
 			}
-
 		}
 		void	welcomeRPL()
 		{
