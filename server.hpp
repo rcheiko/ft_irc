@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/24 14:50:46 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/24 19:17:21 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -229,7 +229,7 @@ class server
 			else
 				std::cout << "\t--Listen success" << std::endl;
 		}
-		int ft_strlen(char *str)
+		int ft_strlen(const char *str)
 		{
 			int i = 0;
 			while (str[i])
@@ -321,6 +321,7 @@ class server
 					}
 					else if (event[i].filter & EVFILT_READ)
 					{
+						
 						char buf[1024];
 						bzero(buf, 1024);
 						checkConnection();
@@ -328,13 +329,23 @@ class server
 						bzero(buf, 1024);
 						if (recv(event_fd, buf, 1024, 0) < 0)
 							perror("recv error");
+						std::cout << "LEN : " << ft_strlen(buf) << std::endl;
+						if (ft_strlen(buf) == 1)
+							continue;
+						std::cout << "JE SUIS ICI\n";
 						char *buf2 = NULL;
+						std::cout << "JE SUIS ICI1\n";
 						buf2 = strdup(buf);
+						std::cout << "JE SUIS ICI2\n";
 						buf2 = checkRN(buf2);
-
+						std::cout << "JE SUIS ICI3\n";
 						char **params = ft_split(buf2, ' ');
+						std::cout << "JE SUIS ICI4\n";
+						if (params)
 						kick_command(params);
+						std::cout << "JE SUIS ICI5\n";
 						list_command(params);
+						std::cout << "JE SUIS ICI6\n";
 						if (strcmp(params[0], "OPER") == 0)
 							ope_command(params); //ajouter la dimension channel de wanis
 						else if (strcmp(params[0], "PRIVMSG") == 0)
@@ -370,12 +381,18 @@ class server
 		}
 		char	*checkRN(char *str)
 		{
-			int i = ft_strlen(str);
-			if (str[i - 1] == '\r')
-				str[i - 1] = '\0';
-			if (str[i - 2] == '\r')
-				str[i - 2] = '\0';
-			return (str);
+			if (str)
+			{
+				int i = ft_strlen(str);
+				if (str[i - 1] == '\r')
+					str[i - 1] = '\0';
+				if (str[i - 1] == '\n')
+					str[i - 1] = '\0';
+				if (str[i - 2] == '\r')
+					str[i - 2] = '\0';
+				return (str);
+			}
+			return (NULL);
 		}
 		int	user_is_in_chan(const char *str, char *str2)
 		{
@@ -965,8 +982,13 @@ class server
 		{
 			int checkChannel = 0;
 			int checkOpe = 0;
-			if (strcmp(str[0], "KICK") == 0)
+			std::cout << "STR : " << ft_strlen(str[0]) << std::endl;
+			std::cout << "STR2 : " << ft_strlen_tab(str) << std::endl;
+			if (!str)
+				return ;
+			if (str && strcmp(str[0], "KICK") == 0)
 			{
+				std::cout << "SUCE MOI \n";
 				if (ft_strlen_tab(str) < 2)
 				{
 					std::string no_params = "461 KICK :Not enough parameters\r\n";
@@ -1222,8 +1244,9 @@ class server
 		void	checkConnection()
 		{
 			char buf[1024];
+			int ok = 0;
 			char res[1024];
-			char **buf_info;
+			//char **buf_info = NULL;
 			bzero(res, 1024);
 			bzero(buf, 1024);
 			if (checkPassword[event_fd -5] == -3)
@@ -1231,9 +1254,11 @@ class server
 				while (1)
 				{
 					bzero(buf, 1024);
+					bzero(res, 1024);
 					if (recv(event_fd, buf, 1024, 0) < 0)
 						perror("recv error");
-					std::cout << "BUFFER = " << buf << "\n";
+					std::cout << "--"<< buf;
+					std::cout << "--"<< ft_strlen(buf) << "--";
 					if (strcmp(buf, "") != 0)
 					{
 						if (buf[ft_strlen(buf) - 1] != '\n')
@@ -1244,48 +1269,68 @@ class server
 							continue;
 					}
 					else
-						break;
-					std::cout << "RES FINISH = " << res << "|" << "\n";
-					buf_info = ft_split(res, '\n');
-					if (ft_strlen_tab(buf_info) == 4) // a modifer
+						continue;
+					
+					users[event_fd]->init.push_back(strdup(res));
+					if (users[event_fd]->init.size() == 4) // a modifer
 					{
-						std::cout << "PASSWORD = " << "\n";
-						checkPassword[event_fd - 5] = -1;
-						break;
+						std::vector<std::string>::iterator it = users[event_fd]->init.begin();
+						std::vector<std::string>::iterator ite = users[event_fd]->init.end();
+						for (; it != ite; it++)
+						{
+							if (strncmp(it->c_str(), "CAP LS", 6) == 0)
+								ok++;
+							if (strncmp(it->c_str(), "PASS ", 5) == 0)
+								ok++;
+							if (strncmp(it->c_str(), "NICK ", 5) == 0)
+								ok++;
+							if (strncmp(it->c_str(), "USER ", 5) == 0)
+								ok++;
+						}
+						if (ok == 4)
+						{
+							checkPassword[event_fd - 5] = -1;
+							break;
+						}
 					}
-					else
-						free_tab(buf_info);
+				//	else
+						//free_tab(buf_info);
 				}
-				std::cout << "FINISH = " << "\n";
 				bzero(buf, 1024);
-				std::cout << "FINISH 1= " << "\n";
 			}
 			char *user = NULL;
 			char *pass = NULL;
 			char *nick = NULL;
-			std::cout << "FINISH 2= " << "\n";
-			std::cout << "Event FD = " << event_fd << "\n";
 			if (checkPassword[event_fd - 5] == -1)
 			{
-				std::cout << "FINISH 3= " << "\n";
-				if (buf_info && buf_info[0] && buf_info[1] && buf_info[2] && buf_info[3])
+				//if (buf_info && buf_info[0] && buf_info[1] && buf_info[2] && buf_info[3])
+				if (users[event_fd]->init.size() == 4)
 				{
-					std::cout << "FINISH 4= " << "\n";
-					pass = ft_substr(buf_info[1], 5, ft_strlen(buf_info[1]) - 5);
-					pass = checkRN(pass);
-
-					nick = ft_substr(buf_info[2], 5, ft_strlen(buf_info[2]) - 5);
-					nick = checkRN(nick);
-
-					user = ft_substr(buf_info[3], 5, ft_strlen(buf_info[3]) - 5);
-					user = checkRN(user);
-
+					std::vector<std::string>::iterator save = users[event_fd]->init.begin();
+					std::vector<std::string>::iterator save1 = users[event_fd]->init.end();
+					for (; save != save1; save++)
+					{
+						if (strncmp(save->c_str(), "PASS ", 5) == 0)
+						{
+							pass = ft_substr(save->c_str(), 5, save->length() - 5);
+							pass = checkRN(pass);
+						}
+						if (strncmp(save->c_str(), "NICK ", 5) == 0)
+						{
+							nick = ft_substr(save->c_str(), 5, save->length() - 5);
+							nick = checkRN(nick);
+						}
+						if (strncmp(save->c_str(), "USER ", 5) == 0)
+						{
+							user = ft_substr(save->c_str(), 5, save->length() - 5);
+							user = checkRN(user);
+						}
+					}
 					pass_error(pass);
 					nick_error(nick);
 					users[event_fd]->nickname = nick;
 					if (user)
 					{
-						std::cout << "FINISH 5= " << "\n";
 						char **user_infos = ft_split(user, ' ');
 						if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
 						{
@@ -1293,8 +1338,11 @@ class server
 							users[event_fd]->username = user_infos[0];
 						}
 						else
+						{
 							if (send(event_fd, "461 : Not enough parameters\r\n", 40, 0) < 0)
 								perror("send error");
+							checkPassword[event_fd - 5] = -3;
+						}
 					}
 				}
 			}
@@ -1332,12 +1380,17 @@ class server
 		}
 		void	pass_error(char *str)
 		{
+			std::cout << "str = " << ft_strlen(str) << "\n";
+			std::cout << "password = " << ft_strlen(password) << "\n";
 			char no_param[] = "432 : Not enough parameters\r\n";
 			if (!ft_strlen(str))
 				if (send(event_fd, no_param, ft_strlen(no_param), 0) < 0)
 					perror("send error");
 			if (strcmp(password, str) == 0 && checkPassword[event_fd - 5] != -2)
+			{
+				std::cout << "\t--ICI---\n";
 				checkPassword[event_fd - 5] = 1;
+			}
 			else
 			{
 				char falsePass[] = "433 : Password incorrect\r\n";
@@ -1394,6 +1447,13 @@ class server
 				exit(EXIT_FAILURE);  
 			}
 			std::cout << "\t--New client connect from port no. " << ntohs(sin.sin_port) << "\n";
+			std::cout << "\n";
+			std::cout << "\t##### PLEASE ENTER THESE FOLLOWING COMMANDS : #####" << "\n";
+			std::cout << "\n";
+			std::cout << "\tCAP LS" << "\n";
+			std::cout << "\tPASS --> <password>" << "\n";
+			std::cout << "\tNICK --> <nickname> " << "\n";
+			std::cout << "\tUSER --> <username> <username> <localhost> :<realname> " << "\n";
 			return (d);
 		}
 		void	closeAllFd()
@@ -1429,7 +1489,7 @@ class server
 				check[i] = 0;
 			}
 		}
-		char	*ft_substr(char *s, unsigned int start, size_t len)
+		char	*ft_substr(const char *s, unsigned int start, size_t len)
 		{
 			char			*strf;
 			int				i;
@@ -1733,6 +1793,7 @@ class server
 			std::string 				nickname;
 			std::string 				username;
 			std::vector<std::string> 	i;
+			std::vector<std::string>	init;
 			unsigned int 				nbr_channel;
 			bool						ope;
 		};
