@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/25 10:30:27 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/25 12:10:46 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -326,6 +326,7 @@ class server
 						bzero(buf, 1024);
 						checkConnection();
 						welcomeRPL();
+						std::cout << "POUETTTTTT\n";
 						bzero(buf, 1024);
 						if (recv(event_fd, buf, 1024, 0) < 0)
 							perror("recv error");
@@ -341,7 +342,6 @@ class server
 						std::cout << "JE SUIS ICI3\n";
 						char **params = ft_split(buf2, ' ');
 						std::cout << "JE SUIS ICI4\n";
-						if (params)
 						kick_command(params);
 						std::cout << "JE SUIS ICI5\n";
 						list_command(params);
@@ -1251,21 +1251,22 @@ class server
 		void	checkConnection()
 		{
 			char buf[1024];
-			int ok = 0;
 			char res[1024];
-			//char **buf_info = NULL;
+			char **buf_info = NULL;
 			bzero(res, 1024);
 			bzero(buf, 1024);
 			if (checkPassword[event_fd -5] == -3)
 			{
 				while (1)
 				{
+					int ok = 0;
+					std::cout << "1\n";
 					bzero(buf, 1024);
 					bzero(res, 1024);
 					if (recv(event_fd, buf, 1024, 0) < 0)
 						perror("recv error");
 					std::cout << "--"<< buf;
-					std::cout << "--"<< ft_strlen(buf) << "--";
+				//	std::cout << "--"<< ft_strlen(buf) << "--";
 					if (strcmp(buf, "") != 0)
 					{
 						if (buf[ft_strlen(buf) - 1] != '\n')
@@ -1278,7 +1279,13 @@ class server
 					else
 						continue;
 					
-					users[event_fd]->init.push_back(strdup(res));
+					std::cout << "2\n";
+					buf_info = ft_split(res, '\n');
+					for (int i = 0; buf_info[i]; i++)
+					{
+						users[event_fd]->init.push_back(strdup(buf_info[i]));
+					}
+					free_tab(buf_info);
 					//if (users[event_fd]->init.size() == 4) // a modifer
 				//	{
 						std::vector<std::string>::iterator it = users[event_fd]->init.begin();
@@ -1286,16 +1293,31 @@ class server
 						for (; it != ite; it++)
 						{
 							if (strncmp(it->c_str(), "CAP LS", 6) == 0)
+							{
+								std::cout << "OK\n";
 								ok++;
+							}
 							if (strncmp(it->c_str(), "PASS ", 5) == 0)
+							{
+								std::cout << "OK1\n";
 								ok++;
+							}
 							if (strncmp(it->c_str(), "NICK ", 5) == 0)
+							{
+								std::cout << "OK2\n";
 								ok++;
+							}
 							if (strncmp(it->c_str(), "USER ", 5) == 0)
+							{
+								std::cout << "OK3\n";
 								ok++;
+							}
+							std::cout << *it << "\n";
 						}
+						std::cout << "OK4 = " << ok << "\n";
 						if (ok == 4)
 						{
+							std::cout << "INSIDE\n";
 							checkPassword[event_fd - 5] = -1;
 							break;
 						}
@@ -1305,14 +1327,16 @@ class server
 				}
 				bzero(buf, 1024);
 			}
+			std::cout << "3\n";
 			char *user = NULL;
 			char *pass = NULL;
 			char *nick = NULL;
 			if (checkPassword[event_fd - 5] == -1)
 			{
 				//if (buf_info && buf_info[0] && buf_info[1] && buf_info[2] && buf_info[3])
-				if (users[event_fd]->init.size() == 4)
-				{
+				//if (users[event_fd]->init.size() == 4)
+				//{
+					std::cout << "4\n";
 					std::vector<std::string>::iterator save = users[event_fd]->init.begin();
 					std::vector<std::string>::iterator save1 = users[event_fd]->init.end();
 					for (; save != save1; save++)
@@ -1338,6 +1362,7 @@ class server
 					users[event_fd]->nickname = nick;
 					if (user)
 					{
+						std::cout << "5\n";
 						char **user_infos = ft_split(user, ' ');
 						if (user_infos && user_infos[0] && user_infos[1] && user_infos[2] && user_infos[3])
 						{
@@ -1351,11 +1376,12 @@ class server
 							checkPassword[event_fd - 5] = -3;
 						}
 					}
-				}
+				//}
 			}
 		}
 		void	welcomeRPL()
 		{
+			std::cout << "6\n";
 			if (checkPassword[event_fd - 5] != -1 && checkPassword[event_fd - 5] != -2 && checkPassword[event_fd - 5] != 2)
 			{
 				char *welcome = NULL;
@@ -1367,6 +1393,8 @@ class server
 				welcome = &a[0];
 				checkPassword[event_fd - 5] = 2;
 				if (send(event_fd, welcome, ft_strlen(welcome), 0) < 0)
+					perror("send error");
+				if (send(event_fd, "suce\n", 5, 0) < 0)
 					perror("send error");
 			}		
 		}
