@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/25 18:20:09 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/25 18:33:56 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 # include <netdb.h>
 # include <poll.h>
 # include <sys/socket.h> // For socket functions
-# include <netinet/in.h> // For sockaddr_in
+# include <netinet/in.h> // for sockaddr_in
 # include <sys/types.h>
 # include <sys/event.h>
 # include <sys/time.h>
@@ -456,6 +456,7 @@ class server
 							std::cout << "PARAMS : " << ft_strlen_tab(params) << std::endl;
 							kick_command(params);
 							list_command(params);
+							bot_command(params);
 								if (strcmp(params[0], "OPER") == 0)
 								ope_command(params); 
 							else if (strcmp(params[0], "PRIVMSG") == 0)
@@ -500,6 +501,15 @@ class server
 			}
 			close(socketfd);
 			closeAllFd();
+		}
+		void	bot_command(char **str)
+		{
+			if (str && ft_strlen_tab(str) == 3 && strcmp(str[2], ":!BOT") == 0)
+			{
+				std::string bot = "                       #####                      \n                      ##***##                     \n                      #######                     \n                        ###                       \n                        ###                       \n       #####################################      \n      #######################################     \n      #######################################     \n  ****########,@@@@*(#########,/@@@@,########**** \n  ****######,@@@@@@@@,#######,@@@@@@@@#######**** \n  ****######,@@@@@@@@,#######,@@@@@@@/#######**** \n  ****########,*@@**####**(####,(@&*/########**** \n  ****#################*****#################**** \n  ****#######################################**** \n  ****##########@@*@@,@@@,@@&#@@,@@##########**** \n  ****#########@@@/@@*@@@*@@@%@@*@@@#########**** \n      #######################################     \n      #######################################     \n       #####################################      \r\n";
+				if (send(event_fd, bot.c_str(), bot.length(), 0) < 0)
+					perror("send error");
+			}
 		}
 		char	*checkRN(char *str)
 		{

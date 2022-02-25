@@ -1,6 +1,0 @@
-CAP 
-LS 
-PASS 1
-23 NICK wa
-wa 
-USER Yo yo localhost :yo
