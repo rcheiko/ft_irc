@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/25 14:20:48 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/25 18:20:09 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,8 @@ class server
 		server(void): ope_password("987"){
 			fillBool();
 			fillPassword();
+			bzero(res, 1024);
+
 		}
 		~server(){}
 
@@ -232,6 +234,8 @@ class server
 		int ft_strlen(const char *str)
 		{
 			int i = 0;
+			if (!str)
+				return 0;
 			while (str[i])
 				i++;
 			return (i);
@@ -324,36 +328,46 @@ class server
 					{
 
 						char buf[1024];
-						char res[1024];
 						char **buf_info = NULL;
 						bzero(buf, 1024);
-						bzero(res, 1024);
-
 						if (recv(event_fd, buf, 1024, 0) < 0)
 							perror("recv error");
+						std::cout << "BUFFER -> " << buf << "\n";
 						if (strcmp(buf, "") != 0)
 						{
 							if (buf[ft_strlen(buf) - 1] != '\n')
 							{
+								std::cout << "1\n";
 								if (buf[ft_strlen(buf) - 1] != '\n')
+								{
 									strcat(res, buf);
+									continue;
+								}
 								else
 									ft_strcat(res, buf);
 							}
 							else
-								strcat(res, buf);
+							{	
+								std::cout << "AVEC --> \n";
+								ft_strcat(res, buf);
+							}
 						}
 						if (checkPassword[event_fd - 5] == -3)
 						{
+							std::cout << "RES --> " << res << "\n";
 							buf_info = ft_split(res, '\n');
+							//bzero(res, 1024);
 							for (int i = 0;buf_info[i]; i++)
 							{
+								std::cout << "TABB-->" << buf_info[i] << std::endl;
 								users[event_fd]->init.push_back(strdup(buf_info[i]));
 							}
 							free_tab(buf_info);
 							if (users[event_fd]->ok != 4)
 							{
 								users[event_fd]->ok = 0;
+								
+								std::cout << " OKKK --> " << users[event_fd]->ok << std::endl;
 								std::vector<std::string>::iterator it = users[event_fd]->init.begin();
 								std::vector<std::string>::iterator ite = users[event_fd]->init.end();
 								for (; it != ite; it++)
@@ -367,8 +381,18 @@ class server
 									if (strncmp(it->c_str(), "USER ", 5) == 0)
 										users[event_fd]->ok++;
 								}
+								if (users[event_fd]->ok != 4)
+								{
+									it = users[event_fd]->init.begin();
+									ite = users[event_fd]->init.end();
+									users[event_fd]->init.erase(it, ite);
+									std::cout << res << std::endl;
+								}						
+								std::cout << " OK --> " << users[event_fd]->ok << std::endl;
 								if (users[event_fd]->ok == 4)
 								{
+									std::cout << "JE SUIS ICI\n";
+									bzero(res, 1024);
 									checkPassword[event_fd - 5] = -1;
 									char *user = NULL;
 									char *pass = NULL;
@@ -415,56 +439,61 @@ class server
 
 							}
 						}
-
+						std::cout << "PASSWORD --> " << checkPassword[event_fd - 5] << "\n"; 
 						//	checkConnection();
 						welcomeRPL();
-						std::cout << "ALLO 1 = \n";
-						if (ft_strlen(res) == 1)
-							continue;
-						std::cout << "ALLO 2 = \n";
-						char *buf2 = NULL;
-						buf2 = strdup(res);
-						std::cout << "ALLO 3 = \n";
-						buf2 = checkRN(buf2);
-						std::cout << "ALLO 4 = \n";
-						char **params = ft_split(buf2, ' ');
-						std::cout << "ALLO 5 = \n";
-						kick_command(params);
-						std::cout << "ALLO 6 = \n";
-						list_command(params);
-						if (strcmp(params[0], "OPER") == 0)
-							ope_command(params); 
-						else if (strcmp(params[0], "PRIVMSG") == 0)
-							msg_command(params);
-						else if (strcmp(params[0], "TOPIC") == 0)
-							topic_command(params);
-						else if (strncmp("JOIN ", buf2, 5) == 0)
-							join_command(buf2, event_fd);
-						else if (strcmp(params[0], "PART") == 0)
-							part_command(params);
-						else if (strcmp(params[0], "MODE") == 0)
+						if (checkPassword[event_fd - 5] == 2)
 						{
-							if (strcmp(params[1], users[event_fd]->nickname.c_str()) == 0)
-								;
-							else
-								mode_command(params);
-						}
-						else if (strcmp(params[0], "NAMES") == 0)
-							names_command(params);
-						else if (strcmp(params[0], "INVITE") == 0)
-							invite_command(params);
-						else if (strcmp(params[0], "QUIT") == 0)
-						{
-							std::cout << "Client has disconnected" << std::endl;;
-							checkPassword[event_fd - 5] = -3;
-							users.erase(event_fd);
-							close(event_fd);
-						}
-						int i = 0;
-						while(params[i])
-						{
-							free(params[i]);
-							i++;
+							if (ft_strlen(res) == 0)
+								continue;
+							char *buf2 = NULL;
+							std::cout << "RES IN = " << res << "\n";
+							std::cout << "RES LEN = " << ft_strlen(res) << "\n";
+							buf2 = strdup(res);
+							buf2 = checkRN(buf2);
+							std::cout << "BUFF 2 = " << buf2 << "\n";
+							char **params = ft_split(buf2, ' ');
+							std::cout << "PARAMS : " << ft_strlen_tab(params) << std::endl;
+							kick_command(params);
+							list_command(params);
+								if (strcmp(params[0], "OPER") == 0)
+								ope_command(params); 
+							else if (strcmp(params[0], "PRIVMSG") == 0)
+								msg_command(params);
+							else if (strcmp(params[0], "TOPIC") == 0)
+								topic_command(params);
+							else if (strncmp("JOIN ", buf2, 5) == 0)
+							{
+								std::cout << "ALLO ICI --> " << "\n";
+								join_command(buf2, event_fd);
+							}
+							else if (strcmp(params[0], "PART") == 0)
+								part_command(params);
+							else if (strcmp(params[0], "MODE") == 0)
+							{
+								if (strcmp(params[1], users[event_fd]->nickname.c_str()) == 0)
+									;
+								else
+									mode_command(params);
+							}
+							else if (strcmp(params[0], "NAMES") == 0)
+								names_command(params);
+							else if (strcmp(params[0], "INVITE") == 0)
+								invite_command(params);
+							else if (strcmp(params[0], "QUIT") == 0)
+							{
+								std::cout << "Client has disconnected" << std::endl;;
+								checkPassword[event_fd - 5] = -3;
+								users.erase(event_fd);
+								close(event_fd);
+							}
+							int i = 0;
+							while(params && params[i])
+							{
+								free(params[i]);
+								i++;
+							}
+							bzero(res, 1024);
 						}
 					}
 				}
@@ -1167,7 +1196,7 @@ class server
 			std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
 			for(;it != ite; it++)
 			{
-				if (strcmp(it->first->name_channels, str[1]) == 0)
+				if (ft_strlen_tab(str) >= 2 && strcmp(it->first->name_channels, str[1]) == 0)
 				{
 					checkChannel = 1;
 					std::vector<int>::iterator it2 = it->second.begin();
@@ -1364,12 +1393,17 @@ class server
 		}
 		void	pass_error(char *str)
 		{
+			std::cout << " ICI -->"<< "\n";
 			char no_param[] = "432 : Not enough parameters\r\n";
 			if (!ft_strlen(str))
 				if (send(event_fd, no_param, ft_strlen(no_param), 0) < 0)
 					perror("send error");
 			if (strcmp(password, str) == 0 && checkPassword[event_fd - 5] != -2)
+			{
+				std::cout << " PASS = " << ft_strlen(password) << "\n";
+				std::cout << " STR = " << ft_strlen(str) << "\n";
 				checkPassword[event_fd - 5] = 1;
+			}
 			else
 			{
 				char falsePass[] = "433 : Password incorrect\r\n";
@@ -1812,6 +1846,7 @@ class server
 		int					checkPassword[256];
 		bool				check[256];
 		std::string			ope_password;
+		char res[1024];
 };
 
 
