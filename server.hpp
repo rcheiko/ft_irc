@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/25 14:00:45 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/25 14:20:48 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -331,18 +331,21 @@ class server
 
 						if (recv(event_fd, buf, 1024, 0) < 0)
 							perror("recv error");
-						if (strcmp(buf, "") != 0 && buf[ft_strlen(buf) - 1] != '\n')
+						if (strcmp(buf, "") != 0)
 						{
 							if (buf[ft_strlen(buf) - 1] != '\n')
-								strcat(res, buf);
+							{
+								if (buf[ft_strlen(buf) - 1] != '\n')
+									strcat(res, buf);
+								else
+									ft_strcat(res, buf);
+							}
 							else
-								ft_strcat(res, buf);
+								strcat(res, buf);
 						}
-						if (ft_strlen(res) > 1)
-							buf_info = ft_split(res, '\n');
 						if (checkPassword[event_fd - 5] == -3)
 						{
-							buf_info = ft_split(buf, '\n');
+							buf_info = ft_split(res, '\n');
 							for (int i = 0;buf_info[i]; i++)
 							{
 								users[event_fd]->init.push_back(strdup(buf_info[i]));
@@ -415,14 +418,19 @@ class server
 
 						//	checkConnection();
 						welcomeRPL();
-
-						if (ft_strlen(buf) == 1)
+						std::cout << "ALLO 1 = \n";
+						if (ft_strlen(res) == 1)
 							continue;
+						std::cout << "ALLO 2 = \n";
 						char *buf2 = NULL;
 						buf2 = strdup(res);
+						std::cout << "ALLO 3 = \n";
 						buf2 = checkRN(buf2);
+						std::cout << "ALLO 4 = \n";
 						char **params = ft_split(buf2, ' ');
+						std::cout << "ALLO 5 = \n";
 						kick_command(params);
+						std::cout << "ALLO 6 = \n";
 						list_command(params);
 						if (strcmp(params[0], "OPER") == 0)
 							ope_command(params); 
