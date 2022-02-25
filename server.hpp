@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/24 19:17:21 by pmontiel         ###   ########.fr       */
+/*   Updated: 2022/02/25 10:30:27 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -367,6 +367,13 @@ class server
 							names_command(params);
 						else if (strcmp(params[0], "INVITE") == 0)
 							invite_command(params);
+						else if (strcmp(params[0], "QUIT") == 0)
+						{
+							std::cout << "Client has disconnected" << std::endl;;
+							checkPassword[event_fd - 5] = -3;
+							users.erase(event_fd);
+							close(event_fd);
+						}
 						int i = 0;
 						while(params[i])
 						{
@@ -1272,8 +1279,8 @@ class server
 						continue;
 					
 					users[event_fd]->init.push_back(strdup(res));
-					if (users[event_fd]->init.size() == 4) // a modifer
-					{
+					//if (users[event_fd]->init.size() == 4) // a modifer
+				//	{
 						std::vector<std::string>::iterator it = users[event_fd]->init.begin();
 						std::vector<std::string>::iterator ite = users[event_fd]->init.end();
 						for (; it != ite; it++)
@@ -1292,7 +1299,7 @@ class server
 							checkPassword[event_fd - 5] = -1;
 							break;
 						}
-					}
+				//	}
 				//	else
 						//free_tab(buf_info);
 				}
