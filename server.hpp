@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/25 18:33:56 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/26 13:06:05 by whamoumi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -488,6 +488,10 @@ class server
 								users.erase(event_fd);
 								close(event_fd);
 							}
+							else if (strcmp(params[0], "NICK") == 0)
+								nick_command(params);
+							else if (strcmp(params[0], "userhost") == 0)
+								user_command(params);
 							int i = 0;
 							while(params && params[i])
 							{
@@ -509,6 +513,67 @@ class server
 				std::string bot = "                       #####                      \n                      ##***##                     \n                      #######                     \n                        ###                       \n                        ###                       \n       #####################################      \n      #######################################     \n      #######################################     \n  ****########,@@@@*(#########,/@@@@,########**** \n  ****######,@@@@@@@@,#######,@@@@@@@@#######**** \n  ****######,@@@@@@@@,#######,@@@@@@@/#######**** \n  ****########,*@@**####**(####,(@&*/########**** \n  ****#################*****#################**** \n  ****#######################################**** \n  ****##########@@*@@,@@@,@@&#@@,@@##########**** \n  ****#########@@@/@@*@@@*@@@%@@*@@@#########**** \n      #######################################     \n      #######################################     \n       #####################################      \r\n";
 				if (send(event_fd, bot.c_str(), bot.length(), 0) < 0)
 					perror("send error");
+			}
+		}
+		void	nick_command(char **str)
+		{
+			std::map<int , Node *>::iterator it = users.begin();
+			std::map<int , Node *>::iterator ite = users.end();
+			if(ft_strlen_tab(str) == 1 || ft_strlen_tab(str) > 2)
+			{
+				std::string message = ":localhost 431 :No nickname given\r\n";
+				send(event_fd, message.c_str(), message.length(), 0);
+			}
+			else
+			{
+				std::cout << "BIEN LE BONJOUR LES GENS\n";
+				for(; it != ite; it++)
+				{
+					if (strcmp(it->second->nickname.c_str(), str[1]) == 0)
+					{
+						std::string message = ":localhost 433 " + users[event_fd]->nickname + " " + str[1] + " :Nickname is already in use.\r\n";
+						send(event_fd, message.c_str(), message.length(), 0);
+						break;
+					}
+				}
+				if (it == ite && strcmp(it->second->nickname.c_str(), str[1]) != 0)
+				{
+					std::string message = ":" + users[event_fd]->nickname + "@" + users[event_fd]->username + " NICK :" + str[1] + "\r\n";
+					send(event_fd, message.c_str(), message.length(), 0);
+					users[event_fd]->nickname = str[1];
+				}
+			}
+		}
+
+		void	user_command(char **str)
+		{
+			if (ft_strlen_tab(str) < 3)
+			{
+				std::string message = ":localhost 461 " + users[event_fd]->nickname  + " USERHOST :Not enough parameters.\r\n";
+				send(event_fd, message.c_str(), message.length(), 0);
+			}
+			else
+			{
+				if (ft_strlen_tab(str) >= 5 && strcmp(str[2], "localhost") == 0)
+				{
+					std::string message = ":localhost 302 " + users[event_fd]->nickname + " :localhost=+localhost@localhost\r\n";
+					send(event_fd, message.c_str(), message.length(), 0);
+				}
+				else
+				{
+					std::string message = ":localhost 302 " + users[event_fd]->nickname + " :\r\n";
+					send(event_fd, message.c_str(), message.length(), 0);
+					int i = 1;
+					std::string localhost;
+					while (str[i])
+					{
+						localhost = localhost + str[i];
+						if (!str[i + 1])
+							localhost = localhost + " ";
+						i++;
+					}
+					users[event_fd]->username = localhost;
+				}
 			}
 		}
 		char	*checkRN(char *str)
