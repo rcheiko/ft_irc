@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/26 13:06:05 by whamoumi         ###   ########.fr       */
+/*   Updated: 2022/02/26 13:11:21 by pmontiel         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,7 @@
 # include <fcntl.h>
 # include <vector>
 # include <stdio.h>
+# include <ctime>
 
 class server
 {
@@ -1670,6 +1671,8 @@ class server
 		}
 		int	join_command(char *buffer, int user)
 		{
+			struct timeval time_now;
+    		gettimeofday(&time_now, nullptr);
 			char **buffer_split = ft_split(buffer, ' ');
 			t_channels *canaux;
 			if (ft_strlen_tab(buffer_split) > 1 && ft_strlen_tab(buffer_split) < 4)
@@ -1837,6 +1840,19 @@ class server
 							welcomeee = &e[0];
 							if (send(user, welcomeee, ft_strlen(welcomeee), 0) < 0)
 								perror("send error");
+							std::map<t_channels *, std::vector<int> >::iterator it10 = canals.begin();
+							std::map<t_channels *, std::vector<int> >::iterator ite10 = canals.end();
+							for(; it10 != ite10; it10++)
+							{
+								if (strcmp(it10->first->name_channels, channel_split[i]) == 0)
+								{
+									std::string a = ":localhost 329 ";
+									std::string b = users[user]->nickname;
+									a = a + b + " " + channel_split[i] + " " + ":" + ft_itoa(time_now.tv_sec) +"\r\n";
+									if (send(event_fd, a.c_str(), a.length(), 0) < 0)
+										perror("send error");
+								}
+							}
 							i++;
 						}
 						else
