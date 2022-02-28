@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/28 12:33:40 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/28 12:57:21 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -433,7 +433,6 @@ class server
 									delete pass;
 									delete nick;
 								}
-								
 							}
 						}
 						welcomeRPL();
@@ -566,11 +565,17 @@ class server
 			{
 				int i = ft_strlen(str);
 				if (str[i - 1] == '\r')
+				{
 					str[i - 1] = '\0';
+				}
 				if (str[i - 1] == '\n')
+				{
 					str[i - 1] = '\0';
+				}
 				if (str[i - 2] == '\r')
+				{
 					str[i - 2] = '\0';
+				}
 				return (str);
 			}
 			return (NULL);
@@ -1516,11 +1521,9 @@ class server
 		}
 		int	init_accept()
 		{
-			char buf[256];
 			int d;
 			int l;
 			sockaddr_in	c;
-			memset(buf ,0 , 256);
 			if ((d = accept(event_fd, (sockaddr *)&c, (socklen_t *)&l)) == -1)
 			{
 				std::cout << "\t--Accept error\n";
