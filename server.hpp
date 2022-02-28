@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/26 16:24:38 by whamoumi         ###   ########.fr       */
+/*   Updated: 2022/02/28 11:08:28 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1252,6 +1252,11 @@ class server
 		}
 		void	part_command(char **str)
 		{
+			if (ft_strlen_tab(str) <= 1)
+			{
+				send(event_fd, "461 PART : Not enough parameters\r\n", 35, 0);
+				return;
+			}
 			int	checkChannel = 0;
 			std::map<t_channels*, std::vector<int> >::iterator it = canals.begin();
 			std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
