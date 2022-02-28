@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/28 15:35:33 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/28 15:39:35 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1490,10 +1490,7 @@ class server
 				if (strcmp(user, str) == 0)
 				{
 					std::string error_nickname = "433 " + users[event_fd]->nickname + " : Nickname is already in use.\r\n";
-					char error_msg[] = "Nickname is already in use\r\n";
 					if (send(event_fd, error_nickname.c_str(), error_nickname.length(), 0) < 0)
-						perror("send error");
-					if (send(event_fd, error_msg, ft_strlen(error_msg), 0) < 0)
 						perror("send error");
 					checkPassword[event_fd - 5] = -2;
 				}
