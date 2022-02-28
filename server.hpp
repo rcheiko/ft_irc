@@ -6,7 +6,7 @@
 /*   By: pmontiel <pmontiel@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/02/10 11:50:46 by rcheiko           #+#    #+#             */
-/*   Updated: 2022/02/28 12:57:21 by rcheiko          ###   ########.fr       */
+/*   Updated: 2022/02/28 15:35:33 by rcheiko          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -355,7 +355,6 @@ class server
 							buf_info = ft_split(res, '\n');
 							for (int i = 0;buf_info[i]; i++)
 							{
-								std::cout << "TABB-->" << buf_info[i] << std::endl;
 								users[event_fd]->init.push_back(buf_info[i]);
 							}
 							free_tab(buf_info);
@@ -381,7 +380,6 @@ class server
 									it = users[event_fd]->init.begin();
 									ite = users[event_fd]->init.end();
 									users[event_fd]->init.erase(it, ite);
-									std::cout << res << std::endl;
 								}						
 								if (users[event_fd]->ok == 4)
 								{
@@ -1094,7 +1092,6 @@ class server
 		}
 		void topic_command(char **str)
 		{
-			std::cout << "JE SUIS REMTRER ICI\n";
 			if (ft_strlen_tab(str) >= 2)
 			{
 				if (ft_strlen_tab(str) == 2)
@@ -1126,13 +1123,10 @@ class server
 					std::map<t_channels*, std::vector<int> >::iterator ite = canals.end();
 					for(;it != ite; it++)
 					{
-						std::cout << "name of chan -->" << it->first->name_channels << std::endl;
 						if (strcmp(it->first->name_channels.c_str(), str[1]) == 0)
 						{
-							
 							if(is_operateur(it->first->name_channels.c_str()) == 1)
 							{
-								
 								int i = 2;
 								std::string new_topic;
 								for (;str[i] ;i++)
@@ -1475,11 +1469,7 @@ class server
 				if (send(event_fd, no_param, ft_strlen(no_param), 0) < 0)
 					perror("send error");
 			if (strcmp(password, str) == 0 && checkPassword[event_fd - 5] != -2)
-			{
-				std::cout << " PASS = " << ft_strlen(password) << "\n";
-				std::cout << " STR = " << ft_strlen(str) << "\n";
 				checkPassword[event_fd - 5] = 1;
-			}
 			else
 			{
 				char falsePass[] = "433 : Password incorrect\r\n";
