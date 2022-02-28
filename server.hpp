@@ -1061,9 +1061,11 @@ class server
 						{
 							char	*ito = ft_itoa(it->first->number_of_members);
 							char *topic = &it->first->topic[0];
-							std::string second_list = ":localhost 322 " + users[event_fd]->nickname + " " + str[1] + " " + ito + " :" + ft_substr(topic, 1, ft_strlen(topic)) + "\r\n";
+							char *yo = ft_substr(topic, 1, ft_strlen(topic));
+							std::string second_list = ":localhost 322 " + users[event_fd]->nickname + " " + str[1] + " " + ito + " :" + yo + "\r\n";
 							send(event_fd, second_list.c_str(), second_list.length(), 0);
 							delete(ito);
+							delete yo;
 						}
 					}
 				}
@@ -1298,6 +1300,7 @@ class server
 					}
 					if (it->second.size() == 1)
 					{
+						delete it->first;
 						canals.erase(it);
 						break;
 					}
@@ -1397,10 +1400,10 @@ class server
 		void	ope_command(char **str)
 		{
 			char* tmp = &ope_password[0];
-			str[2] = ft_substr(str[2], 0, ft_strlen(str[2]) - 2);
+			char *str2 = ft_substr(str[2], 0, ft_strlen(str[2]) - 2);
 			if (str && ft_strlen_tab(str) == 3)
 			{
-				if (strcmp(tmp, str[2]) == 0)
+				if (strcmp(tmp, str2) == 0)
 				{
 					if(users[event_fd]->ope == false)
 					{
@@ -1416,6 +1419,7 @@ class server
 			else
 				if (send(event_fd, "461 :Not enough parameters\r\n", 40, 0) < 0)
 					perror("send error");
+		delete (str2);
 		}
 		char *ft_strcat(char *dest, char *src)
 		{
